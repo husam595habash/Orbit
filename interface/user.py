@@ -6,3 +6,8 @@ class CreateUser(BaseModel):
     lastname: str
     email: EmailStr
     password: str
+
+
+class LoginUser(BaseModel):
+    email: EmailStr
+    password: str
