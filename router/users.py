@@ -1,3 +1,7 @@
+from urllib.request import Request
+
+from auth.auth_bearer import JWTBearer
+from auth.auth_handler import decodeJWT
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from pymongo.errors import DuplicateKeyError
@@ -50,10 +54,20 @@ async def getUser(user_id: str, user_service: UserService = Depends()):
     }
 
 
-# TODO: add authentication
 @users_router.patch("/{user_id}", status_code=status.HTTP_200_OK)
-async def update_user(userBody: UpdateUser, user_id: str, user_service: UserService = Depends()):
+async def update_user(
+    userBody: UpdateUser,
+    user_id: str,
+    user_service: UserService = Depends(),
+    token: str = Depends(JWTBearer()),
+):
     try:
+        uid = decodeJWT(token)["user_id"]
+        if uid != user_id:
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={"message": "You are not authorized to update this user"}
+            )
         result = await user_service.update_user(userBody, user_id)
     except Exception:
         return JSONResponse(
@@ -68,4 +82,35 @@ async def update_user(userBody: UpdateUser, user_id: str, user_service: UserServ
     return {
         "user": result["user"].model_dump(mode="json", exclude={"password"}),
         "posts": result["posts"],
+    }
+
+
+@users_router.patch("/{user_id}/following/{target_id}", status_code=status.HTTP_200_OK)
+async def follow_user(
+    user_id: str,
+    target_id: str,
+    user_service: UserService = Depends(),
+    token: str = Depends(JWTBearer()),
+):
+    uid = decodeJWT(token)["user_id"]
+    if uid != user_id:
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"message": "You are not authorized to modify this user's following list"}
+        )
+    try:
+        result = await user_service.follow_user(user_id, target_id)
+    except Exception:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"message": "Failed to follow user"}
+        )
+    if not result:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": "User not found"}
+        )
+    return {
+        "user1": result["user1"].model_dump(mode="json", exclude={"password"}),
+        "user2": result["user2"].model_dump(mode="json", exclude={"password"}),
     }

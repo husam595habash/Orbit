@@ -81,3 +81,28 @@ class UserService:
 
         # TODO: Return user posts
         return {"user": user, "posts": "posts"}
+    
+
+    # follow user
+    @staticmethod
+    async def follow_user(user_id: str, target_user_id: str) -> Optional[dict]:
+        try:
+            user1 = await User.find_one({"_id": ObjectId(user_id)})
+            user2 = await User.find_one({"_id": ObjectId(target_user_id)})
+        except Exception:
+            return None
+        if not user1 or not user2:
+            return None
+
+        # check if user1 is already following user2
+        if target_user_id in user1.following:
+            user1.following.remove(target_user_id)
+            user2.followers.remove(user_id)
+        else:
+            user1.following.append(target_user_id)
+            user2.followers.append(user_id)
+            # TODO: add notification to user2 that user1 followed them
+        await user1.save()
+        await user2.save()
+
+        return {"user1": user1, "user2": user2}
