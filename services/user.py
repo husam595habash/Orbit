@@ -2,6 +2,9 @@ from models.users import User
 from passlib.context import CryptContext
 from interface.user import CreateUser, LoginUser
 from typing import Optional
+from bson import ObjectId
+from auth.auth_handler import signJWT
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -17,11 +20,11 @@ class UserService:
             )
 
             created_user = await user_in.save()  # Save the user to the database
-            # TODO : create a token for the user
+            token = signJWT(str(created_user.id))
+            return {"user": created_user, "token": token["access_token"]}
         except Exception as e:
             print(f"Error creating user: {e}")
             raise
-        return created_user
     
 
     # get user by email
@@ -39,7 +42,17 @@ class UserService:
         if not pwd_context.verify(userBody.password, user.password):
             return None
         
-        # TODO : create a token for the user
-        return {"user": user, "token": "token"}
+        token = signJWT(str(user.id))
+        return {"user": user, "token": token["access_token"]}
+
+    @staticmethod
+    async def get_user_by_id(user_id: str) -> Optional[dict]:
+        try:
+            user = await User.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            return None
+        if not user:
+            return None
+        return {"user": user, "posts": "posts"}
 
 
