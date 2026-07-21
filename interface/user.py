@@ -11,3 +11,11 @@ class CreateUser(BaseModel):
 class LoginUser(BaseModel):
     email: EmailStr
     password: str
+
+
+class UpdateUser(BaseModel):
+    name: str | None = None
+    lastname: str | None = None
+    password: str | None = None
+    Bio: str | None = None
+    image: str | None = None

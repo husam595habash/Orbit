@@ -1,6 +1,6 @@
 from models.users import User
 from passlib.context import CryptContext
-from interface.user import CreateUser, LoginUser
+from interface.user import CreateUser, LoginUser, UpdateUser
 from typing import Optional
 from bson import ObjectId
 from auth.auth_handler import signJWT
@@ -54,5 +54,30 @@ class UserService:
         if not user:
             return None
         return {"user": user, "posts": "posts"}
+    
 
 
+    #update user
+    @staticmethod
+    async def update_user(userBody: UpdateUser, id: str) -> Optional[dict]:
+        try:
+            user = await User.find_one({"_id": ObjectId(id)})
+        except Exception:
+            return None
+        if not user:
+            return None
+
+        if userBody.name is not None:
+            user.name = userBody.name
+        if userBody.lastname is not None:
+            user.lastname = userBody.lastname
+        if userBody.password is not None:
+            user.password = pwd_context.hash(userBody.password)
+        if userBody.Bio is not None:
+            user.bio = userBody.Bio
+        if userBody.image is not None:
+            user.imageUrl = userBody.image
+        await user.save()
+
+        # TODO: Return user posts
+        return {"user": user, "posts": "posts"}

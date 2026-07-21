@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from pymongo.errors import DuplicateKeyError
 from services.user import UserService
-from interface.user import CreateUser, LoginUser
+from interface.user import CreateUser, LoginUser, UpdateUser
 
 users_router = APIRouter()
 
@@ -39,6 +39,27 @@ async def login(user: LoginUser, user_Service: UserService = Depends()):
 @users_router.get("/{user_id}", status_code=status.HTTP_200_OK)
 async def getUser(user_id: str, user_service: UserService = Depends()):
     result = await user_service.get_user_by_id(user_id)
+    if not result:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": "User not found"}
+        )
+    return {
+        "user": result["user"].model_dump(mode="json", exclude={"password"}),
+        "posts": result["posts"],
+    }
+
+
+# TODO: add authentication
+@users_router.patch("/{user_id}", status_code=status.HTTP_200_OK)
+async def update_user(userBody: UpdateUser, user_id: str, user_service: UserService = Depends()):
+    try:
+        result = await user_service.update_user(userBody, user_id)
+    except Exception:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"message": "Failed to update user"}
+        )
     if not result:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
