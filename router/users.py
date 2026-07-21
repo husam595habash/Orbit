@@ -1,4 +1,4 @@
-from urllib.request import Request
+from typing import Optional
 
 from auth.auth_bearer import JWTBearer
 from auth.auth_handler import decodeJWT
@@ -36,6 +36,31 @@ async def login(user: LoginUser, user_Service: UserService = Depends()):
     return {
         "user": result["user"].model_dump(mode="json", exclude={"password"}),
         "token": result["token"],
+    }
+
+
+# get Suggested Users
+@users_router.get("/suggested", status_code=status.HTTP_200_OK)
+async def get_suggested_users(id: Optional[str] = None, user_service: UserService = Depends()):
+    if not id:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"message": "id is required"}
+        )
+    try:
+        result = await user_service.get_suggested_users(id)
+    except Exception:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"message": "Failed to get suggested users"}
+        )
+    if not result:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": "User not found"}
+        )
+    return {
+        "users": [u.model_dump(mode="json", exclude={"password"}) for u in result["users"]]
     }
 
 

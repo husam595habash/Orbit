@@ -106,3 +106,35 @@ class UserService:
         await user2.save()
 
         return {"user1": user1, "user2": user2}
+    
+
+    # get some suggested users to follow
+    @staticmethod
+    async def get_suggested_users(user_id: str) -> Optional[dict]:
+        try:
+            main_user = await User.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            return None
+        if not main_user:
+            return None
+
+        # don't suggest yourself or people you already follow
+        exclude_ids = {str(main_user.id), *main_user.following}
+        suggestions = []
+
+        for followed_id in main_user.following:
+            followed_user = await User.find_one({"_id": ObjectId(followed_id)})
+            if not followed_user:
+                continue
+
+            related_ids = followed_user.followers + followed_user.following
+            for related_id in related_ids:
+                if related_id in exclude_ids:
+                    continue
+                exclude_ids.add(related_id)
+
+                related_user = await User.find_one({"_id": ObjectId(related_id)})
+                if related_user:
+                    suggestions.append(related_user)
+
+        return {"users": suggestions}
