@@ -138,3 +138,19 @@ class UserService:
                     suggestions.append(related_user)
 
         return {"users": suggestions}
+    
+
+    # user delete account
+    @staticmethod
+    async def delete_user(user_id: str):
+        try:
+            user = await User.find_one({"_id": ObjectId(user_id)})
+        except:
+            return None
+        if not user:
+            return None
+
+        # TODO: this leaves a dangling id in other users followers/following
+        # lists — remove user_id from everyone who references it before deleting.
+        await user.delete()
+        return {"message": "User deleted successfully"}

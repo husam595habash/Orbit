@@ -139,3 +139,32 @@ async def follow_user(
         "user1": result["user1"].model_dump(mode="json", exclude={"password"}),
         "user2": result["user2"].model_dump(mode="json", exclude={"password"}),
     }
+
+
+@users_router.delete("/delete/{user_id}", status_code=status.HTTP_200_OK)
+async def delete_user(
+    user_id: str,
+    user_service: UserService = Depends(),
+    token: str = Depends(JWTBearer()),
+):
+    uid = decodeJWT(token)["user_id"]
+    if uid != user_id:
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"message": "You are not authorized to delete this user"}
+        )
+    try:
+        result = await user_service.delete_user(user_id)
+    except Exception:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"message": "Failed to delete user"}
+        )
+    if not result:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": "User not found"}
+        )
+    return {
+        "message": "User deleted successfully"
+    }
