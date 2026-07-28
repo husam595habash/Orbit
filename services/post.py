@@ -5,6 +5,7 @@ from models.posts import Post
 from models.users import User
 import logging
 from interface.posts import UpdatePost, CreateComment
+from services.notification import NotificationService
 
 
 logger = logging.getLogger(__name__)
@@ -34,8 +35,16 @@ class PostService:
         post.comments.append(comment.value)
         await post.save()
 
-        # commenter = await User.find_one({"_id": ObjectId(user_id)})
-        # TODO: calling notification
+        commenter = await User.find_one({"_id": ObjectId(user_id)})
+        details = "user " + commenter.name + " comment on your post"
+        if post.creator != user_id:
+            await NotificationService.create_notification(
+                details=details,
+                recipient_id=post.creator,
+                actor_id=user_id,
+                actor_name=commenter.name,
+                actor_avatar=commenter.imageUrl,
+            )
         return {"data": post}
 
 
@@ -121,7 +130,15 @@ class PostService:
                 post.likes.remove(user_id)
             else:
                 post.likes.append(user_id)
-                # TODO: calling notification
+                if post.creator != user_id:
+                    liker = await User.find_one({"_id": ObjectId(user_id)})
+                    await NotificationService.create_notification(
+                        details="user " + liker.name + " liked your post",
+                        recipient_id=post.creator,
+                        actor_id=user_id,
+                        actor_name=liker.name,
+                        actor_avatar=liker.imageUrl,
+                    )
             await post.save()
             return {"data": post}
         except Exception as e:
