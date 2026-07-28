@@ -2,7 +2,7 @@ from typing import Optional
 
 from services.user import UserService
 from services.post import PostService
-from interface.posts import CreatePost, CreateComment, UpdatePost
+from interface.posts import CreatePost, UpdatePost
 from auth.auth_bearer import JWTBearer
 from auth.auth_handler import decodeJWT
 from models.posts import Post
@@ -44,30 +44,6 @@ async def create_post(
     return created_post.model_dump(mode="json")
 
 
-@posts_router.post('/{post_id}/comment', status_code=status.HTTP_201_CREATED)
-async def comment(
-    post_id: str,
-    comment: CreateComment,
-    token: str = Depends(JWTBearer()),
-    user_service: UserService = Depends(),
-    post_service: PostService = Depends(),
-):
-    uid = decodeJWT(token)["user_id"]
-    user = await user_service.get_user_by_id(uid)
-    if not user:
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={"message": "User not found"}
-        )
-
-    result = await post_service.add_comment(comment, post_id, uid)
-    if not result:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={"message": "Failed to add comment"}
-        )
-    return result["data"].model_dump(mode="json")
-
 
 # get users & posts by search
 @posts_router.get("/search", status_code=status.HTTP_200_OK)
@@ -98,16 +74,16 @@ async def search(
     }
 
 
-# get post by id
+# get post by id, with its creator's name/imageUrl attached
 @posts_router.get("/{post_id}", status_code=status.HTTP_200_OK)
 async def get_post_by_id(post_id: str, post_service: PostService = Depends()):
-    post = await post_service.get_post_by_id(post_id)
-    if not post:
+    result = await post_service.get_post_detail(post_id)
+    if not result:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"message": "Post not found"}
         )
-    return post.model_dump(mode="json")
+    return result["post"]
 
 
 
@@ -126,7 +102,7 @@ async def get_posts(
             content={"message": "Failed to get posts"}
         )
     return {
-        "data": [p.model_dump(mode="json") for p in result["data"]],
+        "data": result["data"],
         "currentPage": result["currentPage"],
         "numberOfPages": result["numberOfPages"],
     }

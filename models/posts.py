@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from beanie import Document
 from pydantic import Field
@@ -11,8 +11,7 @@ class Post(Document):
     creator: str
     selectedFile: Optional[str] = Field(default="")
     likes: Optional[List[str]] = Field(default=[])
-    comments: Optional[List[str]] = Field(default=[])
-    createdAt: datetime = Field(default_factory=datetime.utcnow)
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:
         collection = "posts"
