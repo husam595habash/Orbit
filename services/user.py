@@ -4,6 +4,8 @@ from interface.user import CreateUser, LoginUser, UpdateUser
 from typing import Optional
 from bson import ObjectId
 from auth.auth_handler import signJWT
+from services.notification import NotificationService
+
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -101,7 +103,14 @@ class UserService:
         else:
             user1.following.append(target_user_id)
             user2.followers.append(user_id)
-            # TODO: add notification to user2 that user1 followed them
+            if user_id != target_user_id:
+                await NotificationService.create_notification(
+                    details="user " + user1.name + " started following you",
+                    recipient_id=target_user_id,
+                    actor_id=user_id,
+                    actor_name=user1.name,
+                    actor_avatar=user1.imageUrl,
+                )
         await user1.save()
         await user2.save()
 
