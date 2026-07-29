@@ -29,13 +29,13 @@ class CommentService:
 
             commenter = await User.find_one({"_id": ObjectId(user_id)})
             if commenter and post.creator != user_id:
-                details = "user " + commenter.name + " commented on your post"
+                details = "user " + commenter.username + " commented on your post"
                 await NotificationService.create_notification(
                     details=details,
                     recipient_id=post.creator,
                     actor_id=user_id,
-                    actor_name=commenter.name,
-                    actor_avatar=commenter.imageUrl,
+                    actor_name=commenter.username,
+                    actor_image_url=commenter.imageUrl,
                 )
    
             
@@ -60,7 +60,7 @@ class CommentService:
                 comment_data = c.model_dump(mode="json")
                 author = await User.find_one({"_id": ObjectId(c.user_id)})
                 if author:
-                    comment_data["user"] = {"name": author.name, "imageUrl": author.imageUrl}
+                    comment_data["user"] = {"name": author.username, "imageUrl": author.imageUrl}
                 comment_list.append(comment_data)
 
             return {
