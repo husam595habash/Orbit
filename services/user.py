@@ -1,3 +1,4 @@
+import re
 from models.users import User
 from passlib.context import CryptContext
 from interface.user import CreateUser, LoginUser, UpdateUser
@@ -15,8 +16,9 @@ class UserService:
     async def create_user(user: CreateUser):
         try:
             user_in= User(
-                name= user.name,
+                firstname= user.firstname,
                 lastname= user.lastname,
+                username= user.username,
                 email= user.email,
                 password= pwd_context.hash(user.password)
             )
@@ -48,20 +50,18 @@ class UserService:
         return {"user": user, "token": token["access_token"]}
 
     @staticmethod
-    async def get_user_by_id(user_id: str) -> Optional[dict]:
+    async def get_user_by_id(user_id: str) -> Optional[User]:
         try:
             user = await User.find_one({"_id": ObjectId(user_id)})
         except Exception:
             return None
-        if not user:
-            return None
-        return {"user": user, "posts": "posts"}
+        return user
     
 
 
     #update user
     @staticmethod
-    async def update_user(userBody: UpdateUser, id: str) -> Optional[dict]:
+    async def update_user(userBody: UpdateUser, id: str) -> Optional[User]:
         try:
             user = await User.find_one({"_id": ObjectId(id)})
         except Exception:
@@ -69,10 +69,12 @@ class UserService:
         if not user:
             return None
 
-        if userBody.name is not None:
-            user.name = userBody.name
+        if userBody.firstname is not None:
+            user.firstname = userBody.firstname
         if userBody.lastname is not None:
             user.lastname = userBody.lastname
+        if userBody.username is not None:
+            user.username = userBody.username
         if userBody.password is not None:
             user.password = pwd_context.hash(userBody.password)
         if userBody.Bio is not None:
@@ -80,9 +82,7 @@ class UserService:
         if userBody.image is not None:
             user.imageUrl = userBody.image
         await user.save()
-
-        # TODO: Return user posts
-        return {"user": user, "posts": "posts"}
+        return user
     
 
     # follow user
@@ -105,11 +105,11 @@ class UserService:
             user2.followers.append(user_id)
             if user_id != target_user_id:
                 await NotificationService.create_notification(
-                    details="user " + user1.name + " started following you",
+                    details="user " + user1.username + " started following you",
                     recipient_id=target_user_id,
                     actor_id=user_id,
-                    actor_name=user1.name,
-                    actor_avatar=user1.imageUrl,
+                    actor_name=user1.username,
+                    actor_image_url=user1.imageUrl,
                 )
         await user1.save()
         await user2.save()
@@ -147,7 +147,22 @@ class UserService:
                     suggestions.append(related_user)
 
         return {"users": suggestions}
-    
+
+
+    # search users by first name, last name, or username
+    @staticmethod
+    async def search_users(query: str) -> Optional[list]:
+        if not query:
+            return []
+
+        escaped_query = re.escape(query)
+        users = await User.find({"$or": [
+            {"firstname": {"$regex": escaped_query, "$options": "i"}},
+            {"lastname": {"$regex": escaped_query, "$options": "i"}},
+            {"username": {"$regex": escaped_query, "$options": "i"}},
+        ]}).to_list()
+        return users
+
 
     # user delete account
     @staticmethod

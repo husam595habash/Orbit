@@ -41,14 +41,13 @@ async def login(user: LoginUser, user_Service: UserService = Depends()):
 
 # get Suggested Users
 @users_router.get("/suggested", status_code=status.HTTP_200_OK)
-async def get_suggested_users(id: Optional[str] = None, user_service: UserService = Depends()):
-    if not id:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={"message": "id is required"}
-        )
+async def get_suggested_users(
+    token: str = Depends(JWTBearer()),
+    user_service: UserService = Depends(),
+):
+    uid = decodeJWT(token)["user_id"]
     try:
-        result = await user_service.get_suggested_users(id)
+        result = await user_service.get_suggested_users(uid)
     except Exception:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -64,6 +63,20 @@ async def get_suggested_users(id: Optional[str] = None, user_service: UserServic
     }
 
 
+# search users by first name, last name, or username
+@users_router.get("/search", status_code=status.HTTP_200_OK)
+async def search_users(q: Optional[str] = None, user_service: UserService = Depends()):
+    if not q:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"message": "q is required"}
+        )
+    users = await user_service.search_users(q)
+    return {
+        "users": [u.model_dump(mode="json", exclude={"password"}) for u in users]
+    }
+
+
 # get user by id
 @users_router.get("/{user_id}", status_code=status.HTTP_200_OK)
 async def getUser(user_id: str, user_service: UserService = Depends()):
@@ -73,10 +86,7 @@ async def getUser(user_id: str, user_service: UserService = Depends()):
             status_code=status.HTTP_404_NOT_FOUND,
             content={"message": "User not found"}
         )
-    return {
-        "user": result["user"].model_dump(mode="json", exclude={"password"}),
-        "posts": result["posts"],
-    }
+    return result.model_dump(mode="json", exclude={"password"})
 
 
 @users_router.patch("/{user_id}", status_code=status.HTTP_200_OK)
@@ -104,10 +114,7 @@ async def update_user(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"message": "User not found"}
         )
-    return {
-        "user": result["user"].model_dump(mode="json", exclude={"password"}),
-        "posts": result["posts"],
-    }
+    return result.model_dump(mode="json", exclude={"password"})
 
 
 @users_router.patch("/{user_id}/following/{target_id}", status_code=status.HTTP_200_OK)
@@ -141,7 +148,7 @@ async def follow_user(
     }
 
 
-@users_router.delete("/delete/{user_id}", status_code=status.HTTP_200_OK)
+@users_router.delete("/{user_id}", status_code=status.HTTP_200_OK)
 async def delete_user(
     user_id: str,
     user_service: UserService = Depends(),

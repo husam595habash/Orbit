@@ -2,8 +2,9 @@ from pydantic import BaseModel, EmailStr
 
 
 class CreateUser(BaseModel):
-    name: str
+    firstname: str
     lastname: str
+    username: str
     email: EmailStr
     password: str
 
@@ -14,8 +15,9 @@ class LoginUser(BaseModel):
 
 
 class UpdateUser(BaseModel):
-    name: str | None = None
+    firstname: str | None = None
     lastname: str | None = None
+    username: str | None = None
     password: str | None = None
     Bio: str | None = None
     image: str | None = None

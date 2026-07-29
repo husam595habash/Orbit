@@ -1,13 +1,12 @@
 from typing import List, Optional
 from beanie import Document, Indexed
 from pydantic import Field, EmailStr
-import pymongo
-
 
 
 class User(Document):
-    name: str
+    firstname: str
     lastname: str
+    username: Indexed(str, unique=True)
     email: Indexed(EmailStr, unique=True)
     password: str
     bio: Optional[str] = Field(default="")
@@ -18,4 +17,3 @@ class User(Document):
 
     class Settings:
         collection = "users"
-        indexes = [[("name", pymongo.TEXT), ("email", pymongo.TEXT)]]

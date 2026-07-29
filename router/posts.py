@@ -14,7 +14,7 @@ posts_router = APIRouter()
 
 
 # create post
-@posts_router.post('/', status_code=status.HTTP_201_CREATED)
+@posts_router.post("", status_code=status.HTTP_201_CREATED)
 async def create_post(
     new_post: CreatePost,
     token: str = Depends(JWTBearer()),
@@ -45,35 +45,6 @@ async def create_post(
 
 
 
-# get users & posts by search
-@posts_router.get("/search", status_code=status.HTTP_200_OK)
-async def search(
-    q: Optional[str] = None,
-    post_service: PostService = Depends()
-):
-    if not q:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={"message": "q is required"}
-        )
-    try:
-        result = await post_service.search_posts_and_users(q)
-    except Exception:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={"message": "Failed to search"}
-        )
-    if not result:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={"message": "Failed to search"}
-        )
-    return {
-        "posts": [p.model_dump(mode="json") for p in result["posts"]],
-        "users": [u.model_dump(mode="json", exclude={"password"}) for u in result["users"]],
-    }
-
-
 # get post by id, with its creator's name/imageUrl attached
 @posts_router.get("/{post_id}", status_code=status.HTTP_200_OK)
 async def get_post_by_id(post_id: str, post_service: PostService = Depends()):
@@ -102,7 +73,7 @@ async def get_posts(
             content={"message": "Failed to get posts"}
         )
     return {
-        "data": result["data"],
+        "posts": result["posts"],
         "currentPage": result["currentPage"],
         "numberOfPages": result["numberOfPages"],
     }

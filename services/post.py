@@ -1,5 +1,4 @@
 import math
-import re
 from typing import Optional
 from bson import ObjectId
 from models.posts import Post
@@ -41,7 +40,7 @@ class PostService:
 
         creator = await User.find_one({"_id": ObjectId(post.creator)})
         if creator:
-            post_data["name"] = creator.name
+            post_data["name"] = creator.username
             post_data["creatorImageUrl"] = creator.imageUrl
 
         return post_data
@@ -65,31 +64,6 @@ class PostService:
         return {"post": post_data}
 
 
-    # search posts and users matching a text query
-    @staticmethod
-    async def search_posts_and_users(query: str):
-        try:
-            if not query:
-                return {"users": [], "posts": []}
-
-            escaped_query = re.escape(query)
-
-            posts = await Post.find({"$or": [
-                {"title": {"$regex": escaped_query, "$options": "i"}},
-                {"message": {"$regex": escaped_query, "$options": "i"}}
-            ]}).to_list()
-
-            users = await User.find({"$or": [
-                {"name": {"$regex": escaped_query, "$options": "i"}},
-                {"email": {"$regex": escaped_query, "$options": "i"}}
-            ]}).to_list()
-
-            return {"users": users, "posts": posts}
-        except Exception as e:
-            logger.error(f"Error in search: {e}")
-            return None
-
-
     # get all posts from users the given user follows (plus their own), or a specific user's posts
     @staticmethod
     async def get_all_posts(page_str: Optional[str], user_id: Optional[str], profile_id: Optional[str] = None):
@@ -108,7 +82,7 @@ class PostService:
                     following_ids = main_user.following + [str(main_user.id)]
                     match_query = {"creator": {"$in": following_ids}}
             else:
-                return {"data": [], "currentPage": page, "numberOfPages": 0}
+                return {"posts": [], "currentPage": page, "numberOfPages": 0}
 
             total = await Post.find(match_query).count()
             posts = await Post.find(match_query) \
@@ -117,7 +91,7 @@ class PostService:
             data = [await PostService._post_to_dict(post) for post in posts]
 
             return {
-                "data": data,
+                "posts": data,
                 "currentPage": page,
                 "numberOfPages": math.ceil(total / limit) if total else 0
             }
@@ -162,11 +136,11 @@ class PostService:
                 if post.creator != user_id:
                     liker = await User.find_one({"_id": ObjectId(user_id)})
                     await NotificationService.create_notification(
-                        details="user " + liker.name + " liked your post",
+                        details="user " + liker.username + " liked your post",
                         recipient_id=post.creator,
                         actor_id=user_id,
-                        actor_name=liker.name,
-                        actor_avatar=liker.imageUrl,
+                        actor_name=liker.username,
+                        actor_image_url=liker.imageUrl,
                     )
             await post.save()
             return {"data": post}
