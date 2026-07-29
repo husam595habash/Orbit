@@ -6,7 +6,7 @@ from beanie import Document
 
 class NotificationActor(BaseModel):
     name: str
-    avatar: Optional[str] = None
+    imageUrl: Optional[str] = None
 
 class Notification(Document):
     details: str

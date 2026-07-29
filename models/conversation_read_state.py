@@ -1,8 +1,8 @@
 from beanie import Document
 
 class ConversationReadState(Document):
-    recipientID: str
-    senderID: str
+    recipient_id: str
+    sender_id: str
     numOfUnreadMessages: int
     isRead: bool
     class Settings:
