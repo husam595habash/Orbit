@@ -23,18 +23,19 @@ Not required.
 - Path Parameters: none
 - Query Parameters: none
 - Request Body:
-  - `name` (string, required)
+  - `firstname` (string, required)
   - `lastname` (string, required)
+  - `username` (string, required, must be unique)
   - `email` (string, required, must be a valid email)
   - `password` (string, required)
 
 **Response**
 - Success: `201 Created`
 - Body: `{ "user": {...}, "token": "<jwt>" }` — `user` excludes the password field
-- Errors: `400 Bad Request` if the email is already registered
+- Errors: `400 Bad Request` if the email or username is already registered
 
 **Business Rules**
-- Email must be unique across all users.
+- Email and username must each be unique across all users.
 - Password is hashed before storage; the plaintext password is never returned.
 
 **Example Request**
@@ -43,8 +44,9 @@ POST /user/signup
 Content-Type: application/json
 
 {
-  "name": "Alice",
+  "firstname": "Alice",
   "lastname": "Smith",
+  "username": "alicesmith",
   "email": "alice@example.com",
   "password": "secret123"
 }
@@ -55,8 +57,9 @@ Content-Type: application/json
 {
   "user": {
     "id": "6a5c95faf3925e18a87a0407",
-    "name": "Alice",
+    "firstname": "Alice",
     "lastname": "Smith",
+    "username": "alicesmith",
     "email": "alice@example.com",
     "bio": "",
     "imageUrl": "",
@@ -107,7 +110,7 @@ Content-Type: application/json
 **Example Response**
 ```json
 {
-  "user": { "id": "6a5c95faf3925e18a87a0407", "name": "Alice", "...": "..." },
+  "user": { "id": "6a5c95faf3925e18a87a0407", "firstname": "Alice", "...": "..." },
   "token": "eyJhbGciOiJIUzI1NiIs..."
 }
 ```
@@ -123,32 +126,74 @@ Returns a list of users the caller might want to follow.
 Powers a "people you may know" / suggestions feature, based on the caller's existing network (followed-by-people-you-follow).
 
 **Authentication**
-Not required.
+Required.
 
 **Request**
-- Query Parameters:
-  - `id` (string, required) — the user requesting suggestions
+- Path Parameters: none
+- Query Parameters: none
 
 **Response**
 - Success: `200 OK`
 - Body: `{ "users": [ {...}, ... ] }`
-- Errors: `400 Bad Request` if `id` is missing; `404 Not Found` if `id` doesn't match a real user
+- Errors: `404 Not Found` if the caller's user record can't be found
 
 **Business Rules**
+- Suggestions are always for the authenticated caller — there is no way to request another user's suggestions.
 - Never suggests the requesting user themselves.
 - Never suggests users the requester already follows.
 - Suggestions are drawn from the followers/following of people the requester follows.
 
 **Example Request**
 ```http
-GET /user/suggested?id=6a5c95faf3925e18a87a0407
+GET /user/suggested
+Authorization: Bearer <token>
 ```
 
 **Example Response**
 ```json
 {
   "users": [
-    { "id": "6a5f99ff10ecd0fbf6ff9b80", "name": "Bob", "...": "..." }
+    { "id": "6a5f99ff10ecd0fbf6ff9b80", "firstname": "Bob", "...": "..." }
+  ]
+}
+```
+
+---
+
+## GET /user/search
+
+**Summary**
+Searches users by first name, last name, or username.
+
+**Purpose**
+Powers the app's people-search feature.
+
+**Authentication**
+Not required.
+
+**Request**
+- Query Parameters:
+  - `q` (string, required) — the search text
+
+**Response**
+- Success: `200 OK`
+- Body: `{ "users": [...] }`
+- Errors: `400 Bad Request` if `q` is missing
+
+**Business Rules**
+- Matching is case-insensitive and substring-based against `firstname`, `lastname`, and `username`.
+- Password is always excluded from results.
+
+**Example Request**
+```http
+GET /user/search?q=ali
+```
+
+**Example Response**
+```json
+{
+  "users": [
+    { "id": "6a5c95faf3925e18a87a0407", "firstname": "Alice", "lastname": "Smith", "username": "alicesmith", "...": "..." }
   ]
 }
 ```
@@ -172,7 +217,7 @@ Not required.
 
 **Response**
 - Success: `200 OK`
-- Body: `{ "user": {...}, "posts": "posts" }` — `posts` field is currently a placeholder, not real post data
+- Body: the user
 - Errors: `404 Not Found` if the user doesn't exist
 
 **Business Rules**
@@ -185,10 +230,7 @@ GET /user/6a5c95faf3925e18a87a0407
 
 **Example Response**
 ```json
-{
-  "user": { "id": "6a5c95faf3925e18a87a0407", "name": "Alice", "...": "..." },
-  "posts": "posts"
-}
+{ "id": "6a5c95faf3925e18a87a0407", "firstname": "Alice", "...": "..." }
 ```
 
 ---
@@ -208,15 +250,16 @@ Required. The token's user must match `{user_id}`.
 - Path Parameters:
   - `user_id` (string, required)
 - Request Body (all fields optional; only provided fields are changed):
-  - `name` (string)
+  - `firstname` (string)
   - `lastname` (string)
+  - `username` (string, must remain unique)
   - `password` (string)
   - `Bio` (string)
   - `image` (string)
 
 **Response**
 - Success: `200 OK`
-- Body: `{ "user": {...}, "posts": "posts" }`
+- Body: the updated user
 - Errors: `403 Forbidden` if the token doesn't belong to `{user_id}`; `404 Not Found` if the user doesn't exist; `400 Bad Request` on failure
 
 **Business Rules**
@@ -235,10 +278,7 @@ Content-Type: application/json
 
 **Example Response**
 ```json
-{
-  "user": { "id": "6a5c95faf3925e18a87a0407", "bio": "Software engineer", "...": "..." },
-  "posts": "posts"
-}
+{ "id": "6a5c95faf3925e18a87a0407", "bio": "Software engineer", "...": "..." }
 ```
 
 ---
@@ -284,7 +324,7 @@ Authorization: Bearer <token>
 
 ---
 
-## DELETE /user/delete/{user_id}
+## DELETE /user/{user_id}
 
 **Summary**
 Permanently deletes a user account.
@@ -310,7 +350,7 @@ Required. The token's user must match `{user_id}`.
 
 **Example Request**
 ```http
-DELETE /user/delete/6a5c95faf3925e18a87a0407
+DELETE /user/6a5c95faf3925e18a87a0407
 Authorization: Bearer <token>
 ```
 
@@ -323,7 +363,7 @@ Authorization: Bearer <token>
 
 # Posts
 
-## POST /post/
+## POST /post
 
 **Summary**
 Creates a new post authored by the caller.
@@ -350,7 +390,7 @@ Required.
 
 **Example Request**
 ```http
-POST /post/
+POST /post
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -372,49 +412,10 @@ Content-Type: application/json
 
 ---
 
-## GET /post/search
-
-**Summary**
-Searches posts (by title/message) and users (by name/email) matching a query.
-
-**Purpose**
-Powers the app's search feature for both content and people.
-
-**Authentication**
-Not required.
-
-**Request**
-- Query Parameters:
-  - `q` (string, required) — the search text
-
-**Response**
-- Success: `200 OK`
-- Body: `{ "posts": [...], "users": [...] }`
-- Errors: `400 Bad Request` if `q` is missing or the search fails
-
-**Business Rules**
-- Matching is case-insensitive and substring-based, not full-text ranking.
-- Password is always excluded from user results.
-
-**Example Request**
-```http
-GET /post/search?q=hello
-```
-
-**Example Response**
-```json
-{
-  "posts": [ { "id": "...", "title": "Hello world", "...": "..." } ],
-  "users": []
-}
-```
-
----
-
 ## GET /post/{post_id}
 
 **Summary**
-Returns a single post along with its creator's display name/image and the first page of its comments.
+Returns a single post along with its creator's username/image and the first page of its comments.
 
 **Purpose**
 Used to view a specific post's detail page.
@@ -428,7 +429,7 @@ Not required.
 
 **Response**
 - Success: `200 OK`
-- Body: the post, plus `name` and `creatorImageUrl` fields describing the creator, and a `comments` array
+- Body: the post, plus `name` (the creator's username) and `creatorImageUrl` fields, and a `comments` array
 - Errors: `404 Not Found` if the post doesn't exist
 
 **Business Rules**
@@ -451,7 +452,7 @@ GET /post/6a68af475835014bf1b7a04f
   "selectedFile": null,
   "likes": [],
   "createdAt": "2026-07-28T13:00:00.000Z",
-  "name": "Alice",
+  "name": "alicesmith",
   "creatorImageUrl": "",
   "comments": [
     {
@@ -460,7 +461,7 @@ GET /post/6a68af475835014bf1b7a04f
       "user_id": "6a5f99ff10ecd0fbf6ff9b80",
       "value": "Great post!",
       "createdAt": "2026-07-28T13:26:02.886Z",
-      "user": { "name": "Bob", "imageUrl": "" }
+      "user": { "name": "bobjones", "imageUrl": "" }
     }
   ]
 }
@@ -485,7 +486,7 @@ Required.
 
 **Response**
 - Success: `200 OK`
-- Body: `{ "data": [...], "currentPage": <int>, "numberOfPages": <int> }`
+- Body: `{ "posts": [...], "currentPage": <int>, "numberOfPages": <int> }`
 - Errors: `400 Bad Request` on failure
 
 **Business Rules**
@@ -501,7 +502,7 @@ Authorization: Bearer <token>
 **Example Response**
 ```json
 {
-  "data": [ { "id": "...", "title": "Hello world", "name": "Alice", "...": "..." } ],
+  "posts": [ { "id": "...", "title": "Hello world", "name": "alicesmith", "...": "..." } ],
   "currentPage": 1,
   "numberOfPages": 1
 }
@@ -688,7 +689,7 @@ Content-Type: application/json
 ## GET /comment/{post_id}
 
 **Summary**
-Returns a paginated list of a post's comments, newest first, each with its author's name and image.
+Returns a paginated list of a post's comments, newest first, each with its author's username and image.
 
 **Purpose**
 Used to display a post's comment thread, including pages beyond what `GET /post/{post_id}` already includes.
@@ -726,7 +727,7 @@ GET /comment/6a68af475835014bf1b7a04f?page=1
       "user_id": "6a5f99ff10ecd0fbf6ff9b80",
       "value": "Great post!",
       "createdAt": "2026-07-28T13:26:02.886Z",
-      "user": { "name": "Bob", "imageUrl": "" }
+      "user": { "name": "bobjones", "imageUrl": "" }
     }
   ],
   "currentPage": 1,
@@ -839,11 +840,12 @@ Required. The caller must be one of the two participants.
 
 **Response**
 - Success: `200 OK`
-- Body: `{ "messages": [...] }` — 8 per page, oldest-to-newest within the page
+- Body: `{ "messages": [...], "currentPage": <int>, "numberOfPages": <int> }` — 8 per page, oldest-to-newest within the page
 - Errors: `403 Forbidden` if the caller isn't one of the two participants; `400 Bad Request` on failure
 
 **Business Rules**
 - Only a conversation's participants can view it — no third party access, regardless of authentication.
+- Unlike posts/comments, `page` here is 0-indexed.
 
 **Example Request**
 ```http
@@ -856,7 +858,9 @@ Authorization: Bearer <token>
 {
   "messages": [
     { "id": "...", "sender": "6a5c95faf3925e18a87a0407", "receiver": "6a5f99ff10ecd0fbf6ff9b80", "content": "Hey!" }
-  ]
+  ],
+  "currentPage": 0,
+  "numberOfPages": 1
 }
 ```
 
@@ -895,7 +899,7 @@ Authorization: Bearer <token>
 ```json
 {
   "messages": [
-    { "id": "...", "recipientID": "6a5c95faf3925e18a87a0407", "senderID": "6a5f99ff10ecd0fbf6ff9b80", "numOfUnreadMessages": 3, "isRead": false }
+    { "id": "...", "recipient_id": "6a5c95faf3925e18a87a0407", "sender_id": "6a5f99ff10ecd0fbf6ff9b80", "numOfUnreadMessages": 3, "isRead": false }
   ],
   "total": 3
 }
@@ -955,19 +959,21 @@ Required.
 
 **Request**
 - Path Parameters: none
-- Query Parameters: none
+- Query Parameters:
+  - `page` (string, optional, default `1`)
 
 **Response**
 - Success: `200 OK`
-- Body: `{ "notifications": [...] }`
+- Body: `{ "notifications": [...], "currentPage": <int>, "numberOfPages": <int> }`
 - Errors: `400 Bad Request` on failure
 
 **Business Rules**
 - Only ever returns the caller's own notifications.
+- 10 notifications per page, newest first.
 
 **Example Request**
 ```http
-GET /notification
+GET /notification?page=1
 Authorization: Bearer <token>
 ```
 
@@ -977,14 +983,16 @@ Authorization: Bearer <token>
   "notifications": [
     {
       "id": "6a6891393d8d3cfeaaf4cab0",
-      "details": "user Alice started following you",
+      "details": "user alicesmith started following you",
       "recipient_id": "6a5f99ff10ecd0fbf6ff9b80",
       "actor_id": "6a5c95faf3925e18a87a0407",
       "isRead": false,
       "createdAt": "2026-07-28T11:23:37.237Z",
-      "actor": { "name": "Alice", "avatar": "" }
+      "actor": { "name": "alicesmith", "imageUrl": "" }
     }
-  ]
+  ],
+  "currentPage": 1,
+  "numberOfPages": 1
 }
 ```
 
@@ -1003,11 +1011,12 @@ Required.
 
 **Request**
 - Path Parameters: none
-- Query Parameters: none
+- Query Parameters:
+  - `page` (string, optional, default `1`) — which page of the (now all-read) notifications to return
 
 **Response**
 - Success: `200 OK`
-- Body: the caller's notifications, now with `isRead: true`
+- Body: `{ "notifications": [...], "currentPage": <int>, "numberOfPages": <int> }`, all with `isRead: true`
 - Errors: `400 Bad Request` on failure
 
 **Business Rules**
@@ -1025,6 +1034,8 @@ Authorization: Bearer <token>
 {
   "notifications": [
     { "id": "6a6891393d8d3cfeaaf4cab0", "isRead": true, "...": "..." }
-  ]
+  ],
+  "currentPage": 1,
+  "numberOfPages": 1
 }
 ```
