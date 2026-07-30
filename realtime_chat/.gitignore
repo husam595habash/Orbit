@@ -1,8 +1,0 @@
-env/
-__pycache__/
-*.pyc
-.env
-.pytest_cache/
-.DS_Store
-.idea/
-.vscode/
