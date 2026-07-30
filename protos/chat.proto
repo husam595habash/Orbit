@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package chat;
+
+service RealTimeChatSetvice {
+    rpc SendMessage (MessageRequest) returns (MessageRespone);
+    rpc GetUserFollowingFollowers (UserID) returns (UserIDsListRespones);
+}
+
+message MessageRequest{
+    string content = 1;
+    string sender = 2;
+    string receiver = 3;
+}
+
+
+message MessageRespone{
+    string message = 1;
+}
+
+message UserID {
+    string user_id = 1;
+}
+
+message UserIDsListRespones {
+    repeated UserIDsList userIDsList = 1;
+}
+
+message UserIDsList {
+    repeated string userIDsList = 1;
+}
