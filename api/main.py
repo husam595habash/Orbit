@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from DB.database import init_db
+from db.database import init_db
 from router.routers import router
 
 @asynccontextmanager

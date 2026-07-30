@@ -1,5 +1,5 @@
 import re
-from models.users import User
+from models.user import User
 from passlib.context import CryptContext
 from interface.user import CreateUser, LoginUser, UpdateUser
 from typing import Optional

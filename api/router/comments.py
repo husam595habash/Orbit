@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from auth.auth_bearer import JWTBearer
 from auth.auth_handler import decodeJWT
 from services.comment import CommentService
-from interface.posts import CreateComment
+from interface.post import CreateComment
 
 comments_router = APIRouter()
 

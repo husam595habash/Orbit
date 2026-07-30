@@ -2,10 +2,10 @@ from typing import Optional
 
 from services.user import UserService
 from services.post import PostService
-from interface.posts import CreatePost, UpdatePost
+from interface.post import CreatePost, UpdatePost
 from auth.auth_bearer import JWTBearer
 from auth.auth_handler import decodeJWT
-from models.posts import Post
+from models.post import Post
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse

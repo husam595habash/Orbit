@@ -1,10 +1,10 @@
 import math
 from typing import Optional
 from bson import ObjectId
-from models.posts import Post
-from models.users import User
+from models.post import Post
+from models.user import User
 import logging
-from interface.posts import UpdatePost
+from interface.post import UpdatePost
 from services.notification import NotificationService
 from services.comment import CommentService
 

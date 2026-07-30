@@ -7,9 +7,9 @@ from services.notification import NotificationService
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 
-notification_router = APIRouter()
+notifications_router = APIRouter()
 
-@notification_router.get("", status_code=status.HTTP_200_OK)
+@notifications_router.get("", status_code=status.HTTP_200_OK)
 async def get_user_notifications(
     page: Optional[str] = None,
     token: str = Depends(JWTBearer()),
@@ -25,7 +25,7 @@ async def get_user_notifications(
     return result
 
 
-@notification_router.patch("/read", status_code=status.HTTP_200_OK)
+@notifications_router.patch("/read", status_code=status.HTTP_200_OK)
 async def mark_notifications_as_read(
     page: Optional[str] = None,
     token: str = Depends(JWTBearer()),

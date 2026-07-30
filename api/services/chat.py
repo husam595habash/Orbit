@@ -1,7 +1,7 @@
 import logging
 import math
 
-from models.messages import Message
+from models.message import Message
 from models.conversation_read_state import ConversationReadState
 from interface.message import CreateMessage
 
