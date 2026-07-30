@@ -4,7 +4,7 @@ import sys
 import grpc
 
 _BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(_BACKEND_DIR, "protos"))
+sys.path.append(os.path.join(_BACKEND_DIR, "realtime_chat", "protos"))
 sys.path.append(os.path.join(_BACKEND_DIR, "api"))
 
 from chat_pb2 import MessageResponse, UserIDsListResponses
