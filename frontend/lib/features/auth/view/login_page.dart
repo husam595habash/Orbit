@@ -19,7 +19,6 @@ class LoginPage extends ConsumerStatefulWidget {
 class _LoginPageState extends ConsumerState<LoginPage>
     with SingleTickerProviderStateMixin {
   static const _heroHeightFraction = 0.52;
-  static const _heroTopGap = 32.0;
   static const _cardTopRadius = 36.0;
   static const _horizontalPadding = 24.0;
   static const _cardOverlap = 24.0;
@@ -87,9 +86,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
         ? authState.error.toString()
         : null;
     final heroHeight = MediaQuery.of(context).size.height * _heroHeightFraction;
-    // The visible gap must clear the status bar/notch inset, or it's
-    // invisible — swallowed entirely by that system overlay.
-    final heroTopGap = MediaQuery.of(context).padding.top + _heroTopGap;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
@@ -99,26 +95,23 @@ class _LoginPageState extends ConsumerState<LoginPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(height: heroTopGap),
               SizedBox(
                 height: heroHeight,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
+                    // Hero image bleeds all the way to the top of the screen,
+                    // behind the status bar and Dynamic Island.
                     Image.asset(
                       'assets/images/login background.png',
                       fit: BoxFit.cover,
                     ),
+                    // Bottom fade so the image dissolves into the dark card.
                     const DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          // The fade lives entirely in the bottom ~50%, and
-                          // reaches full opacity well before the very edge
-                          // (a flat solid buffer) so the card — which
-                          // overlaps upward into this zone — always meets
-                          // pure backgroundDark with no visible seam.
                           stops: [0.5, 0.9, 1.0],
                           colors: [
                             Colors.transparent,
@@ -128,6 +121,23 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         ),
                       ),
                     ),
+                    // Subtle top gradient so the status bar text/icons remain
+                    // readable (≈25 % black → transparent over the top 20 %).
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: const [0.0, 0.20],
+                          colors: [
+                            Colors.black.withValues(alpha: 0.25),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Logo and title respect the safe area (notch / Dynamic
+                    // Island) while the image behind them does not.
                     const SafeArea(
                       bottom: false,
                       child: Center(child: LogoHeader()),
