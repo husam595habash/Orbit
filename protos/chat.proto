@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package chat;
 
-service RealTimeChatSetvice {
-    rpc SendMessage (MessageRequest) returns (MessageRespone);
-    rpc GetUserFollowingFollowers (UserID) returns (UserIDsListRespones);
+service RealTimeChatService {
+    rpc SendMessage (MessageRequest) returns (MessageResponse);
+    rpc GetUserFollowingFollowers (UserID) returns (UserIDsListResponses);
 }
 
 message MessageRequest{
@@ -14,7 +14,8 @@ message MessageRequest{
 }
 
 
-message MessageRespone{
+
+message MessageResponse{
     string message = 1;
 }
 
@@ -22,10 +23,7 @@ message UserID {
     string user_id = 1;
 }
 
-message UserIDsListRespones {
-    repeated UserIDsList userIDsList = 1;
-}
-
-message UserIDsList {
-    repeated string userIDsList = 1;
+message UserIDsListResponses {
+    repeated string followers = 1;
+    repeated string following = 2;
 }

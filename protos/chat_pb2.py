@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nchat.proto\x12\x04\x63hat\"C\n\x0eMessageRequest\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\t\x12\x0e\n\x06sender\x18\x02 \x01(\t\x12\x10\n\x08receiver\x18\x03 \x01(\t\"!\n\x0eMessageRespone\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x19\n\x06UserID\x12\x0f\n\x07user_id\x18\x01 \x01(\t\"=\n\x13UserIDsListRespones\x12&\n\x0buserIDsList\x18\x01 \x03(\x0b\x32\x11.chat.UserIDsList\"\"\n\x0bUserIDsList\x12\x13\n\x0buserIDsList\x18\x01 \x03(\t2\x96\x01\n\x13RealTimeChatSetvice\x12\x39\n\x0bSendMessage\x12\x14.chat.MessageRequest\x1a\x14.chat.MessageRespone\x12\x44\n\x19GetUserFollowingFollowers\x12\x0c.chat.UserID\x1a\x19.chat.UserIDsListResponesb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nchat.proto\x12\x04\x63hat\"C\n\x0eMessageRequest\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\t\x12\x0e\n\x06sender\x18\x02 \x01(\t\x12\x10\n\x08receiver\x18\x03 \x01(\t\"\"\n\x0fMessageResponse\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x19\n\x06UserID\x12\x0f\n\x07user_id\x18\x01 \x01(\t\"<\n\x14UserIDsListResponses\x12\x11\n\tfollowers\x18\x01 \x03(\t\x12\x11\n\tfollowing\x18\x02 \x03(\t2\x98\x01\n\x13RealTimeChatService\x12:\n\x0bSendMessage\x12\x14.chat.MessageRequest\x1a\x15.chat.MessageResponse\x12\x45\n\x19GetUserFollowingFollowers\x12\x0c.chat.UserID\x1a\x1a.chat.UserIDsListResponsesb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,14 +33,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_MESSAGEREQUEST']._serialized_start=20
   _globals['_MESSAGEREQUEST']._serialized_end=87
-  _globals['_MESSAGERESPONE']._serialized_start=89
-  _globals['_MESSAGERESPONE']._serialized_end=122
-  _globals['_USERID']._serialized_start=124
-  _globals['_USERID']._serialized_end=149
-  _globals['_USERIDSLISTRESPONES']._serialized_start=151
-  _globals['_USERIDSLISTRESPONES']._serialized_end=212
-  _globals['_USERIDSLIST']._serialized_start=214
-  _globals['_USERIDSLIST']._serialized_end=248
-  _globals['_REALTIMECHATSETVICE']._serialized_start=251
-  _globals['_REALTIMECHATSETVICE']._serialized_end=401
+  _globals['_MESSAGERESPONSE']._serialized_start=89
+  _globals['_MESSAGERESPONSE']._serialized_end=123
+  _globals['_USERID']._serialized_start=125
+  _globals['_USERID']._serialized_end=150
+  _globals['_USERIDSLISTRESPONSES']._serialized_start=152
+  _globals['_USERIDSLISTRESPONSES']._serialized_end=212
+  _globals['_REALTIMECHATSERVICE']._serialized_start=215
+  _globals['_REALTIMECHATSERVICE']._serialized_end=367
 # @@protoc_insertion_point(module_scope)

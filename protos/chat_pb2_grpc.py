@@ -25,7 +25,7 @@ if _version_not_supported:
     )
 
 
-class RealTimeChatSetviceStub:
+class RealTimeChatServiceStub:
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -35,18 +35,18 @@ class RealTimeChatSetviceStub:
             channel: A grpc.Channel.
         """
         self.SendMessage = channel.unary_unary(
-                '/chat.RealTimeChatSetvice/SendMessage',
+                '/chat.RealTimeChatService/SendMessage',
                 request_serializer=chat__pb2.MessageRequest.SerializeToString,
-                response_deserializer=chat__pb2.MessageRespone.FromString,
+                response_deserializer=chat__pb2.MessageResponse.FromString,
                 _registered_method=True)
         self.GetUserFollowingFollowers = channel.unary_unary(
-                '/chat.RealTimeChatSetvice/GetUserFollowingFollowers',
+                '/chat.RealTimeChatService/GetUserFollowingFollowers',
                 request_serializer=chat__pb2.UserID.SerializeToString,
-                response_deserializer=chat__pb2.UserIDsListRespones.FromString,
+                response_deserializer=chat__pb2.UserIDsListResponses.FromString,
                 _registered_method=True)
 
 
-class RealTimeChatSetviceServicer:
+class RealTimeChatServiceServicer:
     """Missing associated documentation comment in .proto file."""
 
     def SendMessage(self, request, context):
@@ -62,27 +62,27 @@ class RealTimeChatSetviceServicer:
         raise NotImplementedError('Method not implemented!')
 
 
-def add_RealTimeChatSetviceServicer_to_server(servicer, server):
+def add_RealTimeChatServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SendMessage': grpc.unary_unary_rpc_method_handler(
                     servicer.SendMessage,
                     request_deserializer=chat__pb2.MessageRequest.FromString,
-                    response_serializer=chat__pb2.MessageRespone.SerializeToString,
+                    response_serializer=chat__pb2.MessageResponse.SerializeToString,
             ),
             'GetUserFollowingFollowers': grpc.unary_unary_rpc_method_handler(
                     servicer.GetUserFollowingFollowers,
                     request_deserializer=chat__pb2.UserID.FromString,
-                    response_serializer=chat__pb2.UserIDsListRespones.SerializeToString,
+                    response_serializer=chat__pb2.UserIDsListResponses.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'chat.RealTimeChatSetvice', rpc_method_handlers)
+            'chat.RealTimeChatService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('chat.RealTimeChatSetvice', rpc_method_handlers)
+    server.add_registered_method_handlers('chat.RealTimeChatService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class RealTimeChatSetvice:
+class RealTimeChatService:
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -99,9 +99,9 @@ class RealTimeChatSetvice:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chat.RealTimeChatSetvice/SendMessage',
+            '/chat.RealTimeChatService/SendMessage',
             chat__pb2.MessageRequest.SerializeToString,
-            chat__pb2.MessageRespone.FromString,
+            chat__pb2.MessageResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -126,9 +126,9 @@ class RealTimeChatSetvice:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chat.RealTimeChatSetvice/GetUserFollowingFollowers',
+            '/chat.RealTimeChatService/GetUserFollowingFollowers',
             chat__pb2.UserID.SerializeToString,
-            chat__pb2.UserIDsListRespones.FromString,
+            chat__pb2.UserIDsListResponses.FromString,
             options,
             channel_credentials,
             insecure,
