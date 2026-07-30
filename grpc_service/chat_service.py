@@ -9,7 +9,7 @@ sys.path.append(os.path.join(_BACKEND_DIR, "api"))
 
 from chat_pb2 import MessageResponse, UserIDsListResponses
 from chat_pb2_grpc import RealTimeChatServiceServicer, add_RealTimeChatServiceServicer_to_server
-from interface.message import CreateMessage
+from schemas.message import CreateMessage
 from services.chat import ChatService
 from services.user import UserService
 

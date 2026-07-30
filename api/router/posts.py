@@ -2,7 +2,7 @@ from typing import Optional
 
 from services.user import UserService
 from services.post import PostService
-from interface.post import CreatePost, UpdatePost
+from schemas.post import CreatePost, UpdatePost
 from auth.auth_bearer import JWTBearer
 from auth.auth_handler import decodeJWT
 from models.post import Post

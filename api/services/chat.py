@@ -3,7 +3,7 @@ import math
 
 from models.message import Message
 from models.conversation_read_state import ConversationReadState
-from interface.message import CreateMessage
+from schemas.message import CreateMessage
 
 logger = logging.getLogger(__name__)
 

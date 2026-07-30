@@ -4,7 +4,7 @@ from bson import ObjectId
 from models.post import Post
 from models.user import User
 import logging
-from interface.post import UpdatePost
+from schemas.post import UpdatePost
 from services.notification import NotificationService
 from services.comment import CommentService
 

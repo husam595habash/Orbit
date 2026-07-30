@@ -1,7 +1,7 @@
 from typing import Optional
 
 from services.chat import ChatService
-from interface.message import CreateMessage
+from schemas.message import CreateMessage
 from auth.auth_bearer import JWTBearer
 from auth.auth_handler import decodeJWT
 

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from pymongo.errors import DuplicateKeyError
 from services.user import UserService
-from interface.user import CreateUser, LoginUser, UpdateUser
+from schemas.user import CreateUser, LoginUser, UpdateUser
 
 users_router = APIRouter()
 

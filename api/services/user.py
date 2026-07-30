@@ -1,7 +1,7 @@
 import re
 from models.user import User
 from passlib.context import CryptContext
-from interface.user import CreateUser, LoginUser, UpdateUser
+from schemas.user import CreateUser, LoginUser, UpdateUser
 from typing import Optional
 from bson import ObjectId
 from auth.auth_handler import signJWT

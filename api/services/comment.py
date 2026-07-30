@@ -6,7 +6,7 @@ from bson import ObjectId
 from models.comment import Comment
 from models.post import Post
 from models.user import User
-from interface.post import CreateComment
+from schemas.post import CreateComment
 from services.notification import NotificationService
 
 logger = logging.getLogger(__name__)

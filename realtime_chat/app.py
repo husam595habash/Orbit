@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "
 
 from grpc_client import firends
 from auth.auth_handler import decodeJWT
-from interface.message import CreateMessage
+from schemas.message import CreateMessage
 
 
 class ConnectionManager:
