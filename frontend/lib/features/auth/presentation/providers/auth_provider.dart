@@ -1,12 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/auth_repository.dart';
-import '../domain/user.dart';
+import '../../domain/entities/user.dart';
+import '../../domain/usecases/login_usecase.dart';
+import '../../domain/usecases/logout_usecase.dart';
+import '../../domain/usecases/restore_session_usecase.dart';
+import '../../domain/usecases/signup_usecase.dart';
 
 class AuthViewModel extends AsyncNotifier<User?> {
   @override
   Future<User?> build() {
-    return ref.read(authRepositoryProvider).restoreSession();
+    return ref.read(restoreSessionUsecaseProvider)();
   }
 
   Future<void> login({required String email, required String password}) async {
@@ -15,7 +18,7 @@ class AuthViewModel extends AsyncNotifier<User?> {
     // keep the login form mounted instead of swapping to a splash screen.
     state = const AsyncValue<User?>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).login(email: email, password: password),
+      () => ref.read(loginUsecaseProvider)(email: email, password: password),
     );
   }
 
@@ -28,7 +31,7 @@ class AuthViewModel extends AsyncNotifier<User?> {
   }) async {
     state = const AsyncValue<User?>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).signup(
+      () => ref.read(signupUsecaseProvider)(
             firstname: firstname,
             lastname: lastname,
             username: username,
@@ -39,7 +42,7 @@ class AuthViewModel extends AsyncNotifier<User?> {
   }
 
   Future<void> logout() async {
-    await ref.read(authRepositoryProvider).logout();
+    await ref.read(logoutUsecaseProvider)();
     state = const AsyncValue.data(null);
   }
 }

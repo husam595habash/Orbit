@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:frontend/core/theme/app_theme.dart';
 import 'package:frontend/core/widgets/gradient_button.dart';
-import 'package:frontend/features/auth/domain/user.dart';
-import 'package:frontend/features/auth/view/signup_page.dart';
-import 'package:frontend/features/auth/viewmodel/auth_viewmodel.dart';
+import 'package:frontend/features/auth/domain/entities/user.dart';
+import 'package:frontend/features/auth/presentation/pages/signup_page.dart';
+import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
 import 'package:frontend/main.dart';
 
 /// Skips the real session-restore call (network + secure storage aren't

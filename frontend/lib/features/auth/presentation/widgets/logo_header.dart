@@ -17,8 +17,8 @@ class LogoHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(32),
           child: Image.asset(
             'assets/images/brand icon.png',
-            width: 140,
-            height: 140,
+            width: 150,
+            height: 150,
           ),
         ),
         const SizedBox(height: 24),

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/custom_text_field.dart';
-import '../../../core/widgets/error_banner.dart';
-import '../../../core/widgets/gradient_button.dart';
-import '../viewmodel/auth_viewmodel.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/custom_text_field.dart';
+import '../../../../core/widgets/error_banner.dart';
+import '../../../../core/widgets/gradient_button.dart';
+import '../providers/auth_provider.dart';
 
 class SignupPage extends ConsumerStatefulWidget {
   const SignupPage({super.key});
