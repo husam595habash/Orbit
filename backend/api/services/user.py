@@ -115,7 +115,35 @@ class UserService:
         await user2.save()
 
         return {"user1": user1, "user2": user2}
-    
+
+
+    # get the full user docs behind a user's followers/following id lists
+    @staticmethod
+    async def get_followers(user_id: str) -> Optional[list]:
+        try:
+            user = await User.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            return None
+        if not user:
+            return None
+        if not user.followers:
+            return []
+        ids = [ObjectId(fid) for fid in user.followers]
+        return await User.find({"_id": {"$in": ids}}).to_list()
+
+    @staticmethod
+    async def get_following(user_id: str) -> Optional[list]:
+        try:
+            user = await User.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            return None
+        if not user:
+            return None
+        if not user.following:
+            return []
+        ids = [ObjectId(fid) for fid in user.following]
+        return await User.find({"_id": {"$in": ids}}).to_list()
+
 
     # get some suggested users to follow
     @staticmethod
@@ -151,17 +179,38 @@ class UserService:
 
     # search users by first name, last name, or username
     @staticmethod
-    async def search_users(query: str) -> Optional[list]:
+    async def search_users(query: str, page_str: Optional[str] = None) -> dict:
         if not query:
-            return []
+            return {"users": [], "currentPage": 1, "hasMore": False}
 
-        escaped_query = re.escape(query)
-        users = await User.find({"$or": [
-            {"firstname": {"$regex": escaped_query, "$options": "i"}},
-            {"lastname": {"$regex": escaped_query, "$options": "i"}},
-            {"username": {"$regex": escaped_query, "$options": "i"}},
-        ]}).to_list()
-        return users
+        page = int(page_str) if page_str and page_str.isdigit() else 1
+        limit = 20
+        skip = (page - 1) * limit
+
+        # Match each word against any field independently, so a full-name
+        # query like "husam habash" finds firstname="Husam" lastname="Habash"
+        # even though neither field alone contains the whole query string.
+        words = query.split()
+        if not words:
+            return {"users": [], "currentPage": 1, "hasMore": False}
+
+        match_query = {"$and": [
+            {"$or": [
+                {"firstname": {"$regex": re.escape(word), "$options": "i"}},
+                {"lastname": {"$regex": re.escape(word), "$options": "i"}},
+                {"username": {"$regex": re.escape(word), "$options": "i"}},
+            ]}
+            for word in words
+        ]}
+
+        total = await User.find(match_query).count()
+        users = await User.find(match_query).skip(skip).limit(limit).to_list()
+
+        return {
+            "users": users,
+            "currentPage": page,
+            "hasMore": skip + len(users) < total,
+        }
 
 
     # user delete account

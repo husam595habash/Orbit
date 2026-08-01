@@ -58,15 +58,16 @@ async def get_post_by_id(post_id: str, post_service: PostService = Depends()):
 
 
 
-# get many posts by pagination & related to user
+# get many posts by pagination & related to user, or a specific user's posts
 @posts_router.get("", status_code=status.HTTP_200_OK)
 async def get_posts(
     page: Optional[str] = None,
+    profileId: Optional[str] = None,
     token: str = Depends(JWTBearer()),
     post_service: PostService = Depends(),
 ):
     uid = decodeJWT(token)["user_id"]
-    result = await post_service.get_all_posts(page, uid)
+    result = await post_service.get_all_posts(page, uid, profileId)
     if not result:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -76,6 +77,7 @@ async def get_posts(
         "posts": result["posts"],
         "currentPage": result["currentPage"],
         "numberOfPages": result["numberOfPages"],
+        "total": result["total"],
     }
 
 

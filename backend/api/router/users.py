@@ -65,15 +65,21 @@ async def get_suggested_users(
 
 # search users by first name, last name, or username
 @users_router.get("/search", status_code=status.HTTP_200_OK)
-async def search_users(q: Optional[str] = None, user_service: UserService = Depends()):
+async def search_users(
+    q: Optional[str] = None,
+    page: Optional[str] = None,
+    user_service: UserService = Depends(),
+):
     if not q:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"message": "q is required"}
         )
-    users = await user_service.search_users(q)
+    result = await user_service.search_users(q, page)
     return {
-        "users": [u.model_dump(mode="json", exclude={"password"}) for u in users]
+        "users": [u.model_dump(mode="json", exclude={"password"}) for u in result["users"]],
+        "currentPage": result["currentPage"],
+        "hasMore": result["hasMore"],
     }
 
 
@@ -145,6 +151,32 @@ async def follow_user(
     return {
         "user1": result["user1"].model_dump(mode="json", exclude={"password"}),
         "user2": result["user2"].model_dump(mode="json", exclude={"password"}),
+    }
+
+
+@users_router.get("/{user_id}/followers", status_code=status.HTTP_200_OK)
+async def get_followers(user_id: str, user_service: UserService = Depends()):
+    result = await user_service.get_followers(user_id)
+    if result is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": "User not found"}
+        )
+    return {
+        "users": [u.model_dump(mode="json", exclude={"password"}) for u in result]
+    }
+
+
+@users_router.get("/{user_id}/following", status_code=status.HTTP_200_OK)
+async def get_following(user_id: str, user_service: UserService = Depends()):
+    result = await user_service.get_following(user_id)
+    if result is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": "User not found"}
+        )
+    return {
+        "users": [u.model_dump(mode="json", exclude={"password"}) for u in result]
     }
 
 

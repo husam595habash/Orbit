@@ -40,7 +40,9 @@ class PostService:
 
         creator = await User.find_one({"_id": ObjectId(post.creator)})
         if creator:
-            post_data["name"] = creator.username
+            full_name = f"{creator.firstname} {creator.lastname}".strip()
+            post_data["name"] = full_name or creator.username
+            post_data["username"] = creator.username
             post_data["creatorImageUrl"] = creator.imageUrl
 
         return post_data
@@ -82,7 +84,7 @@ class PostService:
                     following_ids = main_user.following + [str(main_user.id)]
                     match_query = {"creator": {"$in": following_ids}}
             else:
-                return {"posts": [], "currentPage": page, "numberOfPages": 0}
+                return {"posts": [], "currentPage": page, "numberOfPages": 0, "total": 0}
 
             total = await Post.find(match_query).count()
             posts = await Post.find(match_query) \
@@ -93,7 +95,8 @@ class PostService:
             return {
                 "posts": data,
                 "currentPage": page,
-                "numberOfPages": math.ceil(total / limit) if total else 0
+                "numberOfPages": math.ceil(total / limit) if total else 0,
+                "total": total,
             }
 
         except Exception as e:
