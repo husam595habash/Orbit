@@ -1,3 +1,4 @@
+import logging
 import re
 from models.user import User
 from passlib.context import CryptContext
@@ -8,6 +9,7 @@ from auth.auth_handler import signJWT
 from services.notification import NotificationService
 
 
+logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -27,7 +29,7 @@ class UserService:
             token = signJWT(str(created_user.id))
             return {"user": created_user, "token": token["access_token"]}
         except Exception as e:
-            print(f"Error creating user: {e}")
+            logger.error(f"Error creating user: {e}")
             raise
     
 
