@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/coming_soon.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/widgets/error_banner.dart';
 import '../../../../core/widgets/gradient_button.dart';
@@ -37,12 +38,6 @@ class _LoginFormState extends ConsumerState<LoginForm> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
-  }
-
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$feature is coming soon.')));
   }
 
   @override
@@ -94,7 +89,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               ),
               onPressed: isLoading
                   ? null
-                  : () => _showComingSoon('Password reset'),
+                  : () => showComingSoon(context, 'Password reset'),
               child: const Text('Forgot Password?'),
             ),
           ),

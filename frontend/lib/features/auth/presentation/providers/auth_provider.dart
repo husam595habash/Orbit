@@ -13,9 +13,6 @@ class AuthViewModel extends AsyncNotifier<User?> {
   }
 
   Future<void> login({required String email, required String password}) async {
-    // Preserve the previous value (hasValue stays true) so the UI can tell
-    // "logging in" apart from "we don't know the session state yet" and
-    // keep the login form mounted instead of swapping to a splash screen.
     state = const AsyncValue<User?>.loading().copyWithPrevious(state);
     state = await AsyncValue.guard(
       () => ref.read(loginUsecaseProvider)(email: email, password: password),
