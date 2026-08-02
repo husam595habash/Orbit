@@ -3,9 +3,8 @@ import sys
 
 import grpc
 
-_BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(_BACKEND_DIR, "realtime_chat", "protos"))
-sys.path.append(os.path.join(_BACKEND_DIR, "api"))
+_REALTIME_CHAT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(_REALTIME_CHAT_DIR, "protos"))
 
 from chat_pb2 import MessageResponse, UserIDsListResponses
 from chat_pb2_grpc import RealTimeChatServiceServicer, add_RealTimeChatServiceServicer_to_server

@@ -1,16 +1,17 @@
 import asyncio
 import os
 import sys
+
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(_REPO_ROOT)
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from db.database import init_db
 from router.routers import router
-
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from grpc_service.chat_service import ChatServer
+from backend.realtime_chat.grpc_server.chat_service import ChatServer
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

@@ -7,7 +7,7 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "api"))
 
-from grpc_client import firends
+from grpc_client import friends
 
 from auth.auth_handler import decodeJWT
 from schemas.message import CreateMessage
@@ -21,7 +21,7 @@ class ConnectionManager:
     # that list to the given websocket. Returns the online list so callers
     # that already need it (e.g. to loop over) don't have to re-fetch it.
     async def notify_online_friends(self, user_id: str, websocket: WebSocket) -> list:
-        friends_list = set(await firends.get_user_friends(user_id))
+        friends_list = set(await friends.get_user_friends(user_id))
         online = [fid for fid in friends_list if fid in self.connections]
         try:
             await websocket.send_json({"onlineFriends": online})
@@ -59,7 +59,7 @@ class ConnectionManager:
             return
         del self.connections[user_id]
         logging.info(f"User {user_id} disconnected ")
-        my_friends = set(await firends.get_user_friends(user_id))
+        my_friends = set(await friends.get_user_friends(user_id))
         for friend_id in my_friends:
             friend_ws = self.connections.get(friend_id)
             if friend_ws:
@@ -72,7 +72,7 @@ class ConnectionManager:
         outgoing = {"sender": sender_id, "receiver": msg.receiver, "content": msg.content}
 
         try:
-            await firends.send_message(outgoing)
+            await friends.send_message(outgoing)
         except Exception as e:
             logging.error(f"Error saving message to db via gRPC: {e}")
             if sender_ws:
