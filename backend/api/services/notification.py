@@ -1,7 +1,13 @@
 import logging
 import math
+import os
+import sys
 from typing import Optional
 
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(_REPO_ROOT)
+
+from backend.realtime_notification.grpc_client import notifications as notifications_grpc_client
 from models.notification import Notification, NotificationActor
 
 logger = logging.getLogger(__name__)
@@ -57,9 +63,24 @@ class NotificationService:
                 )
             )
 
-            # TODO calling gRPC here
-
             await notification.save()
+
+            try:
+                await notifications_grpc_client.send_notification(
+                    notification_id=str(notification.id),
+                    details=details,
+                    recipient_id=recipient_id,
+                    actor_id=actor_id,
+                    is_read=isRead,
+                    created_at=notification.createdAt,
+                    actor_name=actor_name,
+                    actor_avatar=actor_image_url,
+                )
+            except Exception as grpc_err:
+                # A down realtime service should never block notification
+                # creation — the row is already saved; the live push is best-effort.
+                logger.error(f"Failed to push realtime notification: {grpc_err}")
+
             return {"notification_id": str(notification.id)}
         except Exception as e:
             logger.error(e)

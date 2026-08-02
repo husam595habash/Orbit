@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package notification;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service NotificationService {
+    rpc SendNotification(NotificationRequest) returns (google.protobuf.Empty);
+}
+
+
+message NotificationRequest {
+    string id = 1;
+    string details = 2;
+    string recipient_id = 3;
+    string actor_id = 4;
+    bool is_read = 5;
+
+    google.protobuf.Timestamp created_at = 6;
+
+    NotificationActor actor = 7;
+}
+
+message NotificationActor {
+    string name = 1;
+    string avatar = 2;
+}
