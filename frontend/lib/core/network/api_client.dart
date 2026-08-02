@@ -6,9 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../storage/token_storage.dart';
 
+
+const _apiHost = String.fromEnvironment('API_HOST', defaultValue: '192.168.1.107');
+
 String get _backendBaseUrl {
   if (!kIsWeb && Platform.isAndroid) {
     return 'http://10.0.2.2:8000';
+  }
+  if (!kIsWeb && Platform.isIOS) {
+    return 'http://$_apiHost:8000';
   }
   return 'http://localhost:8000';
 }

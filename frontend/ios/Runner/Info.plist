@@ -49,5 +49,12 @@
 	<string>Orbit needs access to your photo library so you can attach a photo to your post.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Orbit needs access to your camera so you can take a photo for your post.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Orbit connects to the dev backend running on your local network.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 </dict>
 </plist>
