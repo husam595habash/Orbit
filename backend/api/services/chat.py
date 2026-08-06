@@ -4,6 +4,7 @@ import math
 from models.message import Message
 from models.conversation_read_state import ConversationReadState
 from schemas.message import CreateMessage
+from services.user import UserService
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,51 @@ class ChatService:
             total_unread_messages = sum(record.numOfUnreadMessages for record in unread_records)
 
             return {"messages": [record.model_dump(mode="json") for record in unread_records], "total": total_unread_messages}
+        except Exception as e:
+            logger.error(e)
+            return None
+
+
+    # list the current user's conversation threads — one entry per partner,
+    # newest message first, with the partner's display info and unread count
+    # attached so the inbox screen doesn't need a fetch per row.
+    @staticmethod
+    async def get_conversations(user_id: str):
+        try:
+            messages = await Message.find({"$or": [
+                {"sender": user_id},
+                {"receiver": user_id},
+            ]}).sort(-Message.id).to_list()
+
+            unread_records = await ConversationReadState.find(
+                {"recipient_id": user_id, "isRead": False}
+            ).to_list()
+            unread_by_sender = {r.sender_id: r.numOfUnreadMessages for r in unread_records}
+
+            conversations = []
+            seen_partners = set()
+            for msg in messages:
+                partner_id = msg.receiver if msg.sender == user_id else msg.sender
+                if partner_id in seen_partners:
+                    continue
+                seen_partners.add(partner_id)
+
+                partner = await UserService.get_user_by_id(partner_id)
+                if not partner:
+                    continue
+
+                full_name = f"{partner.firstname} {partner.lastname}".strip()
+                conversations.append({
+                    "partnerId": partner_id,
+                    "partnerName": full_name or partner.username,
+                    "partnerUsername": partner.username,
+                    "partnerImageUrl": partner.imageUrl,
+                    "lastMessage": msg.content,
+                    "lastMessageId": str(msg.id),
+                    "unreadCount": unread_by_sender.get(partner_id, 0),
+                })
+
+            return conversations
         except Exception as e:
             logger.error(e)
             return None

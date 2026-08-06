@@ -55,6 +55,21 @@ async def get_conversation_messages(
     }
 
 
+@chat_router.get("/conversations")
+async def get_conversations(
+    token: str = Depends(JWTBearer()),
+    chat_service: ChatService = Depends(),
+):
+    uid = decodeJWT(token)["user_id"]
+    result = await chat_service.get_conversations(uid)
+    if result is None:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"message": "Failed to get conversations"}
+        )
+    return {"conversations": result}
+
+
 @chat_router.get("/messages/unread")
 async def get_user_unread_messages(
     token: str = Depends(JWTBearer()),
