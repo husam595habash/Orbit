@@ -4,20 +4,17 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// The app-wide bottom bar: Home / Search / Messages / Profile. Messages is
-/// a one-off action (never "selected"); the other three map onto
-/// [selectedIndex] in the parent shell's IndexedStack.
+/// The app-wide bottom bar: Home / Search / Messages / Profile, all four
+/// mapping onto [selectedIndex] in the parent shell's IndexedStack.
 class MainBottomNavBar extends StatelessWidget {
   const MainBottomNavBar({
     super.key,
     required this.selectedIndex,
     required this.onTabSelected,
-    required this.onMessagesTap,
   });
 
   final int selectedIndex;
   final ValueChanged<int> onTabSelected;
-  final VoidCallback onMessagesTap;
 
   @override
   Widget build(BuildContext context) {
@@ -47,11 +44,15 @@ class MainBottomNavBar extends StatelessWidget {
                   isActive: selectedIndex == 1,
                   onTap: () => onTabSelected(1),
                 ),
-                _NavIcon(icon: Icons.send_outlined, onTap: onMessagesTap),
                 _NavIcon(
-                  icon: Icons.person_outline,
+                  icon: Icons.send_outlined,
                   isActive: selectedIndex == 2,
                   onTap: () => onTabSelected(2),
+                ),
+                _NavIcon(
+                  icon: Icons.person_outline,
+                  isActive: selectedIndex == 3,
+                  onTap: () => onTabSelected(3),
                 ),
               ],
             ),
