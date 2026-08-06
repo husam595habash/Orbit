@@ -10,6 +10,12 @@ class ApiException implements Exception {
     if (data is Map && data['message'] is String) {
       return ApiException(data['message'] as String);
     }
+    // FastAPI's own HTTPException (raised by JWTBearer for an invalid or
+    // expired token, before any of our own handlers run) uses `detail`,
+    // not the `message` key our custom error responses use.
+    if (data is Map && data['detail'] is String) {
+      return ApiException(data['detail'] as String);
+    }
 
     switch (e.type) {
       case DioExceptionType.connectionError:

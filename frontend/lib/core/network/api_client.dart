@@ -1,23 +1,11 @@
-import 'dart:io' show Platform;
-
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../storage/token_storage.dart';
+import 'backend_host.dart';
 
-
-const _apiHost = String.fromEnvironment('API_HOST', defaultValue: '192.168.1.107');
-
-String get _backendBaseUrl {
-  if (!kIsWeb && Platform.isAndroid) {
-    return 'http://10.0.2.2:8000';
-  }
-  if (!kIsWeb && Platform.isIOS) {
-    return 'http://$_apiHost:8000';
-  }
-  return 'http://localhost:8000';
-}
+String get _backendBaseUrl => 'http://$backendHost:8000';
 
 final apiClientProvider = Provider<Dio>((ref) {
   final tokenStorage = ref.watch(tokenStorageProvider);
@@ -32,6 +20,20 @@ final apiClientProvider = Provider<Dio>((ref) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         handler.next(options);
+      },
+      onError: (error, handler) {
+        // A 401 from login/signup just means "wrong credentials" — entirely
+        // expected, not a session problem, and there's no session to expire
+        // yet. Only treat a 401 from an already-authenticated request as an
+        // expired/invalid token: clear the session so AuthGate sends the
+        // user to the login screen instead of leaving them stuck seeing
+        // error messages on whatever screen they're on.
+        final path = error.requestOptions.path;
+        final isAuthEndpoint = path.contains('/login') || path.contains('/signup');
+        if (error.response?.statusCode == 401 && !isAuthEndpoint) {
+          ref.read(authViewModelProvider.notifier).logout();
+        }
+        handler.next(error);
       },
     ),
   );
