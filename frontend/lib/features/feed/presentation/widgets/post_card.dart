@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/coming_soon.dart';
+import '../../../../core/utils/time_ago.dart';
 import '../../domain/entities/post.dart';
 import 'post_options_sheet.dart';
 
@@ -141,6 +142,8 @@ class _ImagePost extends StatelessWidget {
                       const SizedBox(height: 6),
                       _Caption(post: post, overlay: true),
                     ],
+                    const SizedBox(height: 4),
+                    _Timestamp(post: post, overlay: true),
                   ],
                 ),
               ),
@@ -197,6 +200,10 @@ class _TextPost extends StatelessWidget {
               onToggleLike: onToggleLike,
               overlay: false,
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _Timestamp(post: post, overlay: false),
           ),
         ],
       ),
@@ -373,6 +380,22 @@ class _ActionIcon extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _Timestamp extends StatelessWidget {
+  const _Timestamp({required this.post, required this.overlay});
+
+  final Post post;
+  final bool overlay;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = overlay ? Colors.white : AppColors.textLight;
+    return Text(
+      timeAgo(post.createdAt),
+      style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.55)),
     );
   }
 }

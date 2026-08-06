@@ -17,6 +17,7 @@ class ProfileHeader extends StatelessWidget {
     required this.onToggleFollow,
     required this.onTapFollowers,
     required this.onTapFollowing,
+    required this.onMessage,
   });
 
   final User user;
@@ -26,6 +27,7 @@ class ProfileHeader extends StatelessWidget {
   final VoidCallback onToggleFollow;
   final VoidCallback onTapFollowers;
   final VoidCallback onTapFollowing;
+  final VoidCallback onMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +83,7 @@ class ProfileHeader extends StatelessWidget {
               isOwnProfile: isOwnProfile,
               isFollowing: isFollowing,
               onToggleFollow: onToggleFollow,
+              onMessage: onMessage,
             ),
           ],
         ),

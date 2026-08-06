@@ -5,7 +5,9 @@ import '../../../auth/domain/entities/user.dart';
 
 /// A tappable row: avatar, name/username/(bio or mutual-followers), and a
 /// Follow button that alone intercepts taps — the rest of the card opens
-/// the profile.
+/// the profile. Pass a null [onToggleFollow] to omit the button entirely
+/// (e.g. for the current user's own row inside someone else's
+/// followers/following list — you can't follow yourself).
 class UserCard extends StatelessWidget {
   const UserCard({
     super.key,
@@ -20,7 +22,7 @@ class UserCard extends StatelessWidget {
   final bool isFollowing;
   final int mutualCount;
   final VoidCallback onTap;
-  final VoidCallback onToggleFollow;
+  final VoidCallback? onToggleFollow;
 
   @override
   Widget build(BuildContext context) {
@@ -88,8 +90,10 @@ class UserCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              _FollowButton(isFollowing: isFollowing, onTap: onToggleFollow),
+              if (onToggleFollow != null) ...[
+                const SizedBox(width: 12),
+                _FollowButton(isFollowing: isFollowing, onTap: onToggleFollow!),
+              ],
             ],
           ),
         ),

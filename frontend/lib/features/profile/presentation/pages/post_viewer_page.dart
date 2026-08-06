@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/coming_soon.dart';
+import '../../../../core/utils/time_ago.dart';
 import '../../../feed/domain/entities/post.dart';
 import '../../../feed/presentation/widgets/post_options_sheet.dart';
 
@@ -259,7 +260,7 @@ class _PostViewerItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _timeAgo(post.createdAt),
+                  timeAgo(post.createdAt),
                   style: TextStyle(color: AppColors.textLight.withValues(alpha: 0.5), fontSize: 11),
                 ),
               ],
@@ -268,15 +269,6 @@ class _PostViewerItem extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _timeAgo(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inDays >= 7) return '${dt.day}/${dt.month}/${dt.year}';
-    if (diff.inDays >= 1) return '${diff.inDays}d ago';
-    if (diff.inHours >= 1) return '${diff.inHours}h ago';
-    if (diff.inMinutes >= 1) return '${diff.inMinutes}m ago';
-    return 'Just now';
   }
 }
 

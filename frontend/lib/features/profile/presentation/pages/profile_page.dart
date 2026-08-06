@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/domain/entities/user.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../chat/presentation/pages/chat_conversation_page.dart';
 import '../../../feed/domain/entities/post.dart';
 import '../../../feed/presentation/pages/edit_post_page.dart';
 import '../../../feed/presentation/providers/feed_provider.dart';
@@ -65,6 +67,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   void _openFollowList(FollowListKind kind) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => FollowListPage(userId: widget.userId, kind: kind)),
+    );
+  }
+
+  void _openConversation(User user) {
+    final fullName = '${user.firstname} ${user.lastname}'.trim();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatConversationPage(
+          partnerId: user.id,
+          partnerName: fullName.isNotEmpty ? fullName : user.username,
+          partnerImageUrl: user.imageUrl,
+        ),
+      ),
     );
   }
 
@@ -138,6 +153,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ref.read(profileViewModelProvider(widget.userId).notifier).toggleFollow(),
                     onTapFollowers: () => _openFollowList(FollowListKind.followers),
                     onTapFollowing: () => _openFollowList(FollowListKind.following),
+                    onMessage: () => _openConversation(state.user),
                   ),
                 ),
                 if (state.posts.isEmpty)

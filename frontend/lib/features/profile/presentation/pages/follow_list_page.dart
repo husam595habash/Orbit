@@ -48,6 +48,7 @@ class FollowListPage extends ConsumerWidget {
             separatorBuilder: (context, index) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final user = users[index];
+              final isSelf = currentUser != null && user.id == currentUser.id;
               final isFollowing = currentUser != null && user.followers.contains(currentUser.id);
               final mutualCount = currentUser == null
                   ? 0
@@ -59,8 +60,9 @@ class FollowListPage extends ConsumerWidget {
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => ProfilePage(userId: user.id)),
                 ),
-                onToggleFollow: () =>
-                    ref.read(followListViewModelProvider(args).notifier).toggleFollow(user.id),
+                onToggleFollow: isSelf
+                    ? null
+                    : () => ref.read(followListViewModelProvider(args).notifier).toggleFollow(user.id),
               );
             },
           );
