@@ -1,69 +1,62 @@
-import logging
 import re
-from models.user import User
-from passlib.context import CryptContext
-from schemas.user import CreateUser, LoginUser, UpdateUser
 from typing import Optional
+
 from bson import ObjectId
+from fastapi import Depends
+from passlib.context import CryptContext
+
 from auth.auth_handler import signJWT
+from exceptions import UnauthorizedError
+from models.user import User
+from schemas.user import CreateUser, LoginUser, UpdateUser
 from services.notification import NotificationService
-
-
-logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-class UserService:
-    @staticmethod
-    async def create_user(user: CreateUser):
-        try:
-            user_in= User(
-                firstname= user.firstname,
-                lastname= user.lastname,
-                username= user.username,
-                email= user.email,
-                password= pwd_context.hash(user.password)
-            )
 
-            created_user = await user_in.save()  # Save the user to the database
-            token = signJWT(str(created_user.id))
-            return {"user": created_user, "token": token["access_token"]}
-        except Exception as e:
-            logger.error(f"Error creating user: {e}")
-            raise
-    
+class UserService:
+
+    def __init__(self, notification_service: NotificationService = Depends()):
+        self.notification_service = notification_service
+
+    async def create_user(self, user: CreateUser):
+        user_in = User(
+            firstname=user.firstname,
+            lastname=user.lastname,
+            username=user.username,
+            email=user.email,
+            password=pwd_context.hash(user.password)
+        )
+
+        created_user = await user_in.save()
+        token = signJWT(str(created_user.id))
+        return {"user": created_user, "token": token["access_token"]}
+
 
     # get user by email
-    @staticmethod
-    async def get_user_by_email(email: str) -> Optional[User]:
+    async def get_user_by_email(self, email: str) -> Optional[User]:
         user = await User.find_one(User.email == email)
         return user
-    
+
     # login user
-    @staticmethod
-    async def authenticate_user(userBody: LoginUser) -> Optional[User]:
-        user = await UserService.get_user_by_email(email = userBody.email)
-        if not user:
-            return None
-        if not pwd_context.verify(userBody.password, user.password):
-            return None
-        
+    async def authenticate_user(self, userBody: LoginUser) -> dict:
+        user = await self.get_user_by_email(email=userBody.email)
+        if not user or not pwd_context.verify(userBody.password, user.password):
+            raise UnauthorizedError("Invalid email or password")
+
         token = signJWT(str(user.id))
         return {"user": user, "token": token["access_token"]}
 
-    @staticmethod
-    async def get_user_by_id(user_id: str) -> Optional[User]:
+    async def get_user_by_id(self, user_id: str) -> Optional[User]:
         try:
             user = await User.find_one({"_id": ObjectId(user_id)})
         except Exception:
             return None
         return user
-    
 
 
-    #update user
-    @staticmethod
-    async def update_user(userBody: UpdateUser, id: str) -> Optional[User]:
+    # update user
+    async def update_user(self, userBody: UpdateUser, id: str) -> Optional[User]:
         try:
             user = await User.find_one({"_id": ObjectId(id)})
         except Exception:
@@ -85,11 +78,10 @@ class UserService:
             user.imageUrl = userBody.image
         await user.save()
         return user
-    
+
 
     # follow user
-    @staticmethod
-    async def follow_user(user_id: str, target_user_id: str) -> Optional[dict]:
+    async def follow_user(self, user_id: str, target_user_id: str) -> Optional[dict]:
         try:
             user1 = await User.find_one({"_id": ObjectId(user_id)})
             user2 = await User.find_one({"_id": ObjectId(target_user_id)})
@@ -106,7 +98,7 @@ class UserService:
             user1.following.append(target_user_id)
             user2.followers.append(user_id)
             if user_id != target_user_id:
-                await NotificationService.create_notification(
+                await self.notification_service.create_notification(
                     details="user " + user1.username + " started following you",
                     recipient_id=target_user_id,
                     actor_id=user_id,
@@ -120,8 +112,7 @@ class UserService:
 
 
     # get the full user docs behind a user's followers/following id lists
-    @staticmethod
-    async def get_followers(user_id: str) -> Optional[list]:
+    async def get_followers(self, user_id: str) -> Optional[list]:
         try:
             user = await User.find_one({"_id": ObjectId(user_id)})
         except Exception:
@@ -133,8 +124,7 @@ class UserService:
         ids = [ObjectId(fid) for fid in user.followers]
         return await User.find({"_id": {"$in": ids}}).to_list()
 
-    @staticmethod
-    async def get_following(user_id: str) -> Optional[list]:
+    async def get_following(self, user_id: str) -> Optional[list]:
         try:
             user = await User.find_one({"_id": ObjectId(user_id)})
         except Exception:
@@ -148,8 +138,7 @@ class UserService:
 
 
     # get some suggested users to follow
-    @staticmethod
-    async def get_suggested_users(user_id: str) -> Optional[dict]:
+    async def get_suggested_users(self, user_id: str) -> Optional[dict]:
         try:
             main_user = await User.find_one({"_id": ObjectId(user_id)})
         except Exception:
@@ -180,8 +169,7 @@ class UserService:
 
 
     # search users by first name, last name, or username
-    @staticmethod
-    async def search_users(query: str, page_str: Optional[str] = None) -> dict:
+    async def search_users(self, query: str, page_str: Optional[str] = None) -> dict:
         if not query:
             return {"users": [], "currentPage": 1, "hasMore": False}
 
@@ -216,11 +204,10 @@ class UserService:
 
 
     # user delete account
-    @staticmethod
-    async def delete_user(user_id: str):
+    async def delete_user(self, user_id: str):
         try:
             user = await User.find_one({"_id": ObjectId(user_id)})
-        except:
+        except Exception:
             return None
         if not user:
             return None
