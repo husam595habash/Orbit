@@ -27,8 +27,9 @@ class ChatListViewModel extends AsyncNotifier<List<Conversation>> {
 
     final senderId = data['sender'] as String;
     final receiverId = data['receiver'] as String;
-    // Only messages addressed to me move a conversation in the inbox — a
-    // message I sent is reflected by the conversation screen itself.
+    // The socket only pushes incoming messages to their receiver, never
+    // echoes a message back to its own sender — so a message I sent is
+    // bumped via bumpForSentMessage() instead, called from sendMessage().
     if (receiverId != myId) return;
 
     final index = current.indexWhere((c) => c.partnerId == senderId);
@@ -50,6 +51,36 @@ class ChatListViewModel extends AsyncNotifier<List<Conversation>> {
       unreadCount: existing.unreadCount + 1,
     );
     state = AsyncValue.data([bumped, ...current.where((c) => c.partnerId != senderId)]);
+  }
+
+  /// Called right after we send a message, so the inbox row for that
+  /// partner moves to the top and shows the new preview immediately,
+  /// instead of only updating once the recipient's socket echo (which
+  /// never reaches us — we're the sender, not the receiver) or the next
+  /// full refresh happens.
+  void bumpForSentMessage(String partnerId, String content) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+
+    final index = current.indexWhere((c) => c.partnerId == partnerId);
+    if (index == -1) {
+      // A thread we don't have loaded yet — refetch properly instead of
+      // guessing at the partner's display info from a bare id.
+      refresh();
+      return;
+    }
+
+    final existing = current[index];
+    final bumped = Conversation(
+      partnerId: existing.partnerId,
+      partnerName: existing.partnerName,
+      partnerUsername: existing.partnerUsername,
+      partnerImageUrl: existing.partnerImageUrl,
+      lastMessage: content,
+      lastMessageAt: DateTime.now(),
+      unreadCount: existing.unreadCount,
+    );
+    state = AsyncValue.data([bumped, ...current.where((c) => c.partnerId != partnerId)]);
   }
 
   Future<void> refresh() async {

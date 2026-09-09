@@ -6,6 +6,7 @@ import '../../data/services/chat_socket_service.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/usecases/get_messages_usecase.dart';
 import '../../domain/usecases/mark_messages_read_usecase.dart';
+import 'chat_list_provider.dart';
 import 'chat_socket_provider.dart';
 
 class ConversationState {
@@ -121,6 +122,7 @@ class ChatConversationViewModel extends FamilyAsyncNotifier<ConversationState, S
       sentAt: DateTime.now(),
     );
     state = AsyncValue.data(current.copyWith(messages: [...current.messages, optimistic]));
+    ref.read(chatListViewModelProvider.notifier).bumpForSentMessage(arg, content);
 
     final socket = await ref.read(chatSocketServiceProvider.future);
     socket.send(receiverId: arg, content: content);

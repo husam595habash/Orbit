@@ -30,8 +30,9 @@ class ChatServer(RealTimeChatServiceServicer):
 
     async def SendMessage(self, request, context):
         msg = CreateMessage(content=request.content, receiver=request.receiver)
-        result = await ChatService.send_message(msg, request.sender)
-        if not result:
+        try:
+            await ChatService().send_message(msg, request.sender)
+        except Exception:
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details('Failed to send message')
             return MessageResponse()
@@ -48,7 +49,7 @@ class ChatServer(RealTimeChatServiceServicer):
 
 
     async def GetUserFollowingFollowers(self, request, context):
-        user = await UserService.get_user_by_id(request.user_id)
+        user = await UserService().get_user_by_id(request.user_id)
         if not user:
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details('User not found')
