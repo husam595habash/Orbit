@@ -18,3 +18,4 @@ class Notification(Document):
     actor: NotificationActor
     class Settings:
         name = "notifications"
+        indexes = [[("recipient_id", 1), ("_id", -1)]]

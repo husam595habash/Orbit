@@ -7,3 +7,4 @@ class ConversationReadState(Document):
     isRead: bool
     class Settings:
         name = "conversation_read_states"
+        indexes = [[("recipient_id", 1), ("sender_id", 1)]]

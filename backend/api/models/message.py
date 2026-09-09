@@ -6,3 +6,7 @@ class Message(Document):
     receiver: str
     class Settings:
         name = "messages"
+        indexes = [
+            [("sender", 1), ("receiver", 1), ("_id", -1)],
+            [("receiver", 1), ("sender", 1), ("_id", -1)],
+        ]

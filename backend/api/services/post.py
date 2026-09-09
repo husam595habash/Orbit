@@ -48,6 +48,26 @@ class PostService:
 
         return post_data
 
+    # build JSON-ready posts for a whole page at once, fetching all their
+    # creators in a single batched query instead of one query per post.
+    async def _posts_to_dicts(self, posts: list[Post]) -> list[dict]:
+        creator_ids = {ObjectId(p.creator) for p in posts}
+        creators = await User.find({"_id": {"$in": list(creator_ids)}}).to_list()
+        creators_by_id = {str(creator.id): creator for creator in creators}
+
+        results = []
+        for post in posts:
+            post_data = post.model_dump(mode="json")
+            creator = creators_by_id.get(post.creator)
+            if creator:
+                full_name = f"{creator.firstname} {creator.lastname}".strip()
+                post_data["name"] = full_name or creator.username
+                post_data["username"] = creator.username
+                post_data["creatorImageUrl"] = creator.imageUrl
+            results.append(post_data)
+
+        return results
+
     # get post by id, with its creator's name/imageUrl and first page of comments attached
     # (call CommentService.get_post_comments directly to page past the first 10)
     async def get_post_detail(self, post_id: str):
@@ -85,7 +105,7 @@ class PostService:
         posts = await Post.find(match_query) \
             .sort(-Post.createdAt).skip(skip).limit(limit).to_list()
 
-        data = [await self._post_to_dict(post) for post in posts]
+        data = await self._posts_to_dicts(posts)
 
         return {
             "posts": data,

@@ -111,34 +111,42 @@ class UserService:
         return {"user1": user1, "user2": user2}
 
 
-    # get the full user docs behind a user's followers/following id lists
-    async def get_followers(self, user_id: str) -> Optional[list]:
+    # get the full user docs behind a user's followers/following id lists,
+    # a page at a time instead of the whole (potentially huge) list at once
+    async def _get_user_list(self, user_id: str, list_field: str, page_str: Optional[str] = None) -> Optional[dict]:
         try:
             user = await User.find_one({"_id": ObjectId(user_id)})
         except Exception:
             return None
         if not user:
             return None
-        if not user.followers:
-            return []
-        ids = [ObjectId(fid) for fid in user.followers]
-        return await User.find({"_id": {"$in": ids}}).to_list()
 
-    async def get_following(self, user_id: str) -> Optional[list]:
-        try:
-            user = await User.find_one({"_id": ObjectId(user_id)})
-        except Exception:
-            return None
-        if not user:
-            return None
-        if not user.following:
-            return []
-        ids = [ObjectId(fid) for fid in user.following]
-        return await User.find({"_id": {"$in": ids}}).to_list()
+        all_ids = getattr(user, list_field)
+        if not all_ids:
+            return {"users": [], "currentPage": 1, "hasMore": False}
+
+        page = int(page_str) if page_str and page_str.isdigit() else 1
+        limit = 20
+        skip = (page - 1) * limit
+
+        page_ids = [ObjectId(fid) for fid in all_ids[skip:skip + limit]]
+        users = await User.find({"_id": {"$in": page_ids}}).to_list() if page_ids else []
+
+        return {
+            "users": users,
+            "currentPage": page,
+            "hasMore": skip + len(page_ids) < len(all_ids),
+        }
+
+    async def get_followers(self, user_id: str, page_str: Optional[str] = None) -> Optional[dict]:
+        return await self._get_user_list(user_id, "followers", page_str)
+
+    async def get_following(self, user_id: str, page_str: Optional[str] = None) -> Optional[dict]:
+        return await self._get_user_list(user_id, "following", page_str)
 
 
     # get some suggested users to follow
-    async def get_suggested_users(self, user_id: str) -> Optional[dict]:
+    async def get_suggested_users(self, user_id: str, limit: int = 10) -> Optional[dict]:
         try:
             main_user = await User.find_one({"_id": ObjectId(user_id)})
         except Exception:
@@ -148,22 +156,29 @@ class UserService:
 
         # don't suggest yourself or people you already follow
         exclude_ids = {str(main_user.id), *main_user.following}
-        suggestions = []
 
-        for followed_id in main_user.following:
-            followed_user = await User.find_one({"_id": ObjectId(followed_id)})
-            if not followed_user:
-                continue
+        if not main_user.following:
+            return {"users": []}
 
-            related_ids = followed_user.followers + followed_user.following
-            for related_id in related_ids:
-                if related_id in exclude_ids:
-                    continue
-                exclude_ids.add(related_id)
+        # one batched lookup for everyone the main user follows, instead of
+        # a query per followed user
+        followed_object_ids = [ObjectId(fid) for fid in main_user.following]
+        followed_users = await User.find({"_id": {"$in": followed_object_ids}}).to_list()
 
-                related_user = await User.find_one({"_id": ObjectId(related_id)})
-                if related_user:
-                    suggestions.append(related_user)
+        related_ids = set()
+        for followed_user in followed_users:
+            for related_id in followed_user.followers + followed_user.following:
+                if related_id not in exclude_ids:
+                    exclude_ids.add(related_id)
+                    related_ids.add(related_id)
+
+        if not related_ids:
+            return {"users": []}
+
+        # one batched lookup for all candidate suggestions, instead of a
+        # query per candidate, capped so the response can't grow unbounded
+        related_object_ids = [ObjectId(rid) for rid in related_ids]
+        suggestions = await User.find({"_id": {"$in": related_object_ids}}).limit(limit).to_list()
 
         return {"users": suggestions}
 

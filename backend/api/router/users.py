@@ -111,22 +111,26 @@ async def follow_user(
 
 
 @users_router.get("/{user_id}/followers", status_code=status.HTTP_200_OK)
-async def get_followers(user_id: str, user_service: UserService = Depends()):
-    result = await user_service.get_followers(user_id)
+async def get_followers(user_id: str, page: Optional[str] = None, user_service: UserService = Depends()):
+    result = await user_service.get_followers(user_id, page)
     if result is None:
         raise NotFoundError("User not found")
     return {
-        "users": [u.model_dump(mode="json", exclude={"password"}) for u in result]
+        "users": [u.model_dump(mode="json", exclude={"password"}) for u in result["users"]],
+        "currentPage": result["currentPage"],
+        "hasMore": result["hasMore"],
     }
 
 
 @users_router.get("/{user_id}/following", status_code=status.HTTP_200_OK)
-async def get_following(user_id: str, user_service: UserService = Depends()):
-    result = await user_service.get_following(user_id)
+async def get_following(user_id: str, page: Optional[str] = None, user_service: UserService = Depends()):
+    result = await user_service.get_following(user_id, page)
     if result is None:
         raise NotFoundError("User not found")
     return {
-        "users": [u.model_dump(mode="json", exclude={"password"}) for u in result]
+        "users": [u.model_dump(mode="json", exclude={"password"}) for u in result["users"]],
+        "currentPage": result["currentPage"],
+        "hasMore": result["hasMore"],
     }
 
 

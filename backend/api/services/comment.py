@@ -53,10 +53,14 @@ class CommentService:
         comments = await Comment.find({"post_id": post_id}) \
             .sort(-Comment.id).skip(skip).limit(limit).to_list()
 
+        author_ids = {ObjectId(c.user_id) for c in comments}
+        authors = await User.find({"_id": {"$in": list(author_ids)}}).to_list()
+        authors_by_id = {str(author.id): author for author in authors}
+
         comment_list = []
         for c in comments:
             comment_data = c.model_dump(mode="json")
-            author = await User.find_one({"_id": ObjectId(c.user_id)})
+            author = authors_by_id.get(c.user_id)
             if author:
                 comment_data["user"] = {"name": author.username, "imageUrl": author.imageUrl}
             comment_list.append(comment_data)

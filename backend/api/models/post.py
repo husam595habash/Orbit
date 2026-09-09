@@ -15,4 +15,7 @@ class Post(Document):
 
     class Settings:
         name = "posts"
-        indexes = [[("title", pymongo.TEXT), ("message", pymongo.TEXT)]]
+        indexes = [
+            [("title", pymongo.TEXT), ("message", pymongo.TEXT)],
+            [("creator", 1), ("createdAt", -1)],
+        ]
