@@ -1,13 +1,17 @@
 
 from fastapi import FastAPI , WebSocket, WebSocketDisconnect
 
+import asyncio
 import logging
 import os
 import sys
 
+from contextlib import asynccontextmanager
+
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "api"))
 
 from grpc_client import friends
+from grpc_server.chat_service import ChatServer
 
 from auth.auth_handler import decodeJWT
 from schemas.message import CreateMessage
@@ -88,7 +92,16 @@ class ConnectionManager:
             except Exception as e:
                 logging.error(f"Error sending realtime message to {receiver}: {e}")
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        chat_server = ChatServer()
+        asyncio.create_task(chat_server.start())
+    except Exception as e:
+        logging.error(f"Error starting gRPC server: {e}")
+    yield
+
+app = FastAPI(lifespan=lifespan)
 manager = ConnectionManager()
 
 @app.websocket("/ws")

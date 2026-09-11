@@ -1,9 +1,10 @@
 from typing import Optional
 
 from auth.auth_bearer import get_current_user_id
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from pymongo.errors import DuplicateKeyError
 from exceptions import ForbiddenError, NotFoundError, ValidationError
+from rate_limit import limiter
 from services.user import UserService
 from schemas.user import CreateUser, LoginUser, UpdateUser
 from fastapi.responses import JSONResponse
@@ -12,7 +13,8 @@ users_router = APIRouter()
 
 # register a new user
 @users_router.post("/signup", status_code=status.HTTP_201_CREATED)
-async def signup(user: CreateUser, user_service: UserService = Depends()):
+@limiter.limit("5/minute")
+async def signup(request: Request, user: CreateUser, user_service: UserService = Depends()):
     try:
         result = await user_service.create_user(user)
     except DuplicateKeyError:
@@ -27,7 +29,8 @@ async def signup(user: CreateUser, user_service: UserService = Depends()):
 
 # login a user
 @users_router.post("/login", status_code=status.HTTP_200_OK)
-async def login(user: LoginUser, user_service: UserService = Depends()):
+@limiter.limit("10/minute")
+async def login(request: Request, user: LoginUser, user_service: UserService = Depends()):
     result = await user_service.authenticate_user(user)
     return {
         "user": result["user"].model_dump(mode="json", exclude={"password"}),

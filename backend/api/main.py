@@ -1,4 +1,3 @@
-import asyncio
 import os
 import sys
 
@@ -10,20 +9,23 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from db.database import init_db
+from rate_limit import limiter
 from router.routers import router
 from exceptions import NotFoundError, ValidationError, ForbiddenError, UnauthorizedError
-from backend.realtime_chat.grpc_server.chat_service import ChatServer
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    chatServer = ChatServer()
-    asyncio.create_task(chatServer.start())
     yield
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
