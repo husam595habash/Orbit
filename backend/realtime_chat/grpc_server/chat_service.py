@@ -8,9 +8,11 @@ sys.path.append(os.path.join(_REALTIME_CHAT_DIR, "protos"))
 
 from chat_pb2 import MessageResponse, UserIDsListResponses
 from chat_pb2_grpc import RealTimeChatServiceServicer, add_RealTimeChatServiceServicer_to_server
+from di import get_chat_service, get_user_service
+from exceptions import NotFoundError
 from schemas.message import CreateMessage
-from services.chat import ChatService
-from services.user import UserService
+
+
 
 
 class ChatServer(RealTimeChatServiceServicer):
@@ -31,7 +33,7 @@ class ChatServer(RealTimeChatServiceServicer):
     async def SendMessage(self, request, context):
         msg = CreateMessage(content=request.content, receiver=request.receiver)
         try:
-            await ChatService().send_message(msg, request.sender)
+            await get_chat_service().send_message(msg, request.sender)
         except Exception:
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details('Failed to send message')
@@ -49,8 +51,9 @@ class ChatServer(RealTimeChatServiceServicer):
 
 
     async def GetUserFollowingFollowers(self, request, context):
-        user = await UserService().get_user_by_id(request.user_id)
-        if not user:
+        try:
+            user = await get_user_service().get_user_by_id(request.user_id)
+        except NotFoundError:
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details('User not found')
             return UserIDsListResponses()

@@ -1,22 +1,29 @@
-import re
 from typing import Optional
 
-from bson import ObjectId
-from fastapi import Depends
 from passlib.context import CryptContext
 
 from auth.auth_handler import signJWT
-from exceptions import UnauthorizedError
+from exceptions import NotFoundError, UnauthorizedError
 from models.user import User
 from schemas.user import CreateUser, LoginUser, UpdateUser
+from repositories.user_repository import UserRepository
 from services.notification import NotificationService
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+def _to_public_dict(user: User) -> dict:
+    return user.model_dump(mode="json", exclude={"password"})
+
+
 class UserService:
 
-    def __init__(self, notification_service: NotificationService = Depends()):
+    def __init__(
+        self,
+        user_repository: UserRepository,
+        notification_service: NotificationService,
+    ):
+        self.user_repository = user_repository
         self.notification_service = notification_service
 
     async def create_user(self, user: CreateUser):
@@ -28,41 +35,33 @@ class UserService:
             password=pwd_context.hash(user.password)
         )
 
-        created_user = await user_in.save()
+        created_user = await self.user_repository.save(user_in)
         token = signJWT(str(created_user.id))
-        return {"user": created_user, "token": token["access_token"]}
+        return {"user": _to_public_dict(created_user), "token": token["access_token"]}
 
-
-    # get user by email
-    async def get_user_by_email(self, email: str) -> Optional[User]:
-        user = await User.find_one(User.email == email)
-        return user
 
     # login user
     async def authenticate_user(self, userBody: LoginUser) -> dict:
-        user = await self.get_user_by_email(email=userBody.email)
+        user = await self.user_repository.find_by_email(userBody.email)
         if not user or not pwd_context.verify(userBody.password, user.password):
             raise UnauthorizedError("Invalid email or password")
 
         token = signJWT(str(user.id))
-        return {"user": user, "token": token["access_token"]}
+        return {"user": _to_public_dict(user), "token": token["access_token"]}
 
-    async def get_user_by_id(self, user_id: str) -> Optional[User]:
-        try:
-            user = await User.find_one({"_id": ObjectId(user_id)})
-        except Exception:
-            return None
+    async def get_user_by_id(self, user_id: str) -> User:
+        user = await self.user_repository.find_by_id(user_id)
+        if not user:
+            raise NotFoundError("User not found")
         return user
+
+    async def get_user_profile(self, user_id: str) -> dict:
+        return _to_public_dict(await self.get_user_by_id(user_id))
 
 
     # update user
-    async def update_user(self, userBody: UpdateUser, id: str) -> Optional[User]:
-        try:
-            user = await User.find_one({"_id": ObjectId(id)})
-        except Exception:
-            return None
-        if not user:
-            return None
+    async def update_user(self, userBody: UpdateUser, id: str) -> dict:
+        user = await self.get_user_by_id(id)
 
         if userBody.firstname is not None:
             user.firstname = userBody.firstname
@@ -76,19 +75,14 @@ class UserService:
             user.bio = userBody.Bio
         if userBody.image is not None:
             user.imageUrl = userBody.image
-        await user.save()
-        return user
+        await self.user_repository.save(user)
+        return _to_public_dict(user)
 
 
     # follow user
-    async def follow_user(self, user_id: str, target_user_id: str) -> Optional[dict]:
-        try:
-            user1 = await User.find_one({"_id": ObjectId(user_id)})
-            user2 = await User.find_one({"_id": ObjectId(target_user_id)})
-        except Exception:
-            return None
-        if not user1 or not user2:
-            return None
+    async def follow_user(self, user_id: str, target_user_id: str) -> dict:
+        user1 = await self.get_user_by_id(user_id)
+        user2 = await self.get_user_by_id(target_user_id)
 
         # check if user1 is already following user2
         if target_user_id in user1.following:
@@ -105,21 +99,16 @@ class UserService:
                     actor_name=user1.username,
                     actor_image_url=user1.imageUrl,
                 )
-        await user1.save()
-        await user2.save()
+        await self.user_repository.save(user1)
+        await self.user_repository.save(user2)
 
-        return {"user1": user1, "user2": user2}
+        return {"user1": _to_public_dict(user1), "user2": _to_public_dict(user2)}
 
 
     # get the full user docs behind a user's followers/following id lists,
     # a page at a time instead of the whole (potentially huge) list at once
-    async def _get_user_list(self, user_id: str, list_field: str, page_str: Optional[str] = None) -> Optional[dict]:
-        try:
-            user = await User.find_one({"_id": ObjectId(user_id)})
-        except Exception:
-            return None
-        if not user:
-            return None
+    async def _get_user_list(self, user_id: str, list_field: str, page_str: Optional[str] = None) -> dict:
+        user = await self.get_user_by_id(user_id)
 
         all_ids = getattr(user, list_field)
         if not all_ids:
@@ -129,30 +118,25 @@ class UserService:
         limit = 20
         skip = (page - 1) * limit
 
-        page_ids = [ObjectId(fid) for fid in all_ids[skip:skip + limit]]
-        users = await User.find({"_id": {"$in": page_ids}}).to_list() if page_ids else []
+        page_ids = all_ids[skip:skip + limit]
+        users = await self.user_repository.find_by_ids(page_ids)
 
         return {
-            "users": users,
+            "users": [_to_public_dict(u) for u in users],
             "currentPage": page,
             "hasMore": skip + len(page_ids) < len(all_ids),
         }
 
-    async def get_followers(self, user_id: str, page_str: Optional[str] = None) -> Optional[dict]:
+    async def get_followers(self, user_id: str, page_str: Optional[str] = None) -> dict:
         return await self._get_user_list(user_id, "followers", page_str)
 
-    async def get_following(self, user_id: str, page_str: Optional[str] = None) -> Optional[dict]:
+    async def get_following(self, user_id: str, page_str: Optional[str] = None) -> dict:
         return await self._get_user_list(user_id, "following", page_str)
 
 
     # get some suggested users to follow
-    async def get_suggested_users(self, user_id: str, limit: int = 10) -> Optional[dict]:
-        try:
-            main_user = await User.find_one({"_id": ObjectId(user_id)})
-        except Exception:
-            return None
-        if not main_user:
-            return None
+    async def get_suggested_users(self, user_id: str, limit: int = 10) -> dict:
+        main_user = await self.get_user_by_id(user_id)
 
         # don't suggest yourself or people you already follow
         exclude_ids = {str(main_user.id), *main_user.following}
@@ -162,8 +146,7 @@ class UserService:
 
         # one batched lookup for everyone the main user follows, instead of
         # a query per followed user
-        followed_object_ids = [ObjectId(fid) for fid in main_user.following]
-        followed_users = await User.find({"_id": {"$in": followed_object_ids}}).to_list()
+        followed_users = await self.user_repository.find_by_ids(main_user.following)
 
         related_ids = set()
         for followed_user in followed_users:
@@ -177,10 +160,9 @@ class UserService:
 
         # one batched lookup for all candidate suggestions, instead of a
         # query per candidate, capped so the response can't grow unbounded
-        related_object_ids = [ObjectId(rid) for rid in related_ids]
-        suggestions = await User.find({"_id": {"$in": related_object_ids}}).limit(limit).to_list()
+        suggestions = await self.user_repository.find_by_ids(list(related_ids), limit=limit)
 
-        return {"users": suggestions}
+        return {"users": [_to_public_dict(u) for u in suggestions]}
 
 
     # search users by first name, last name, or username
@@ -199,20 +181,10 @@ class UserService:
         if not words:
             return {"users": [], "currentPage": 1, "hasMore": False}
 
-        match_query = {"$and": [
-            {"$or": [
-                {"firstname": {"$regex": re.escape(word), "$options": "i"}},
-                {"lastname": {"$regex": re.escape(word), "$options": "i"}},
-                {"username": {"$regex": re.escape(word), "$options": "i"}},
-            ]}
-            for word in words
-        ]}
-
-        total = await User.find(match_query).count()
-        users = await User.find(match_query).skip(skip).limit(limit).to_list()
+        users, total = await self.user_repository.search(words, skip=skip, limit=limit)
 
         return {
-            "users": users,
+            "users": [_to_public_dict(u) for u in users],
             "currentPage": page,
             "hasMore": skip + len(users) < total,
         }
@@ -220,14 +192,9 @@ class UserService:
 
     # user delete account
     async def delete_user(self, user_id: str):
-        try:
-            user = await User.find_one({"_id": ObjectId(user_id)})
-        except Exception:
-            return None
-        if not user:
-            return None
+        user = await self.get_user_by_id(user_id)
 
         # TODO: this leaves a dangling id in other users followers/following
         # lists — remove user_id from everyone who references it before deleting.
-        await user.delete()
+        await self.user_repository.delete(user)
         return {"message": "User deleted successfully"}

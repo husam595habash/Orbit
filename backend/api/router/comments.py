@@ -3,7 +3,8 @@ from typing import Optional
 from fastapi import APIRouter, status, Depends
 
 from auth.auth_bearer import get_current_user_id
-from exceptions import NotFoundError, ForbiddenError
+from di import get_comment_service
+from exceptions import ForbiddenError
 from services.comment import CommentService
 from schemas.post import CreateComment
 
@@ -16,12 +17,9 @@ async def create_comment(
     post_id: str,
     data: CreateComment,
     user_id: str = Depends(get_current_user_id),
-    comment_service: CommentService = Depends(),
+    comment_service: CommentService = Depends(get_comment_service),
 ):
-    result = await comment_service.create_comment(data, post_id, user_id)
-    if not result:
-        raise NotFoundError("Post not found")
-    return result.model_dump(mode="json")
+    return await comment_service.create_comment(data, post_id, user_id)
 
 
 # get comments for a post, paginated
@@ -29,7 +27,7 @@ async def create_comment(
 async def get_comments(
     post_id: str,
     page: Optional[str] = None,
-    comment_service: CommentService = Depends(),
+    comment_service: CommentService = Depends(get_comment_service),
 ):
     return await comment_service.get_post_comments(post_id, page)
 
@@ -39,11 +37,9 @@ async def get_comments(
 async def delete_comment(
     comment_id: str,
     user_id: str = Depends(get_current_user_id),
-    comment_service: CommentService = Depends(),
+    comment_service: CommentService = Depends(get_comment_service),
 ):
     existing_comment = await comment_service.get_comment_by_id(comment_id)
-    if not existing_comment:
-        raise NotFoundError("Comment not found")
     if existing_comment.user_id != user_id:
         raise ForbiddenError("You are not authorized to delete this comment")
 

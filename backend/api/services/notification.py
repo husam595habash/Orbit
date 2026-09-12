@@ -9,20 +9,22 @@ sys.path.append(_REPO_ROOT)
 
 from backend.realtime_notification.grpc_client import notifications as notifications_grpc_client
 from models.notification import Notification, NotificationActor
+from repositories.notification_repository import NotificationRepository
 
 logger = logging.getLogger(__name__)
 
 
 class NotificationService:
+
+    def __init__(self, notification_repository: NotificationRepository):
+        self.notification_repository = notification_repository
+
     async def get_user_notifications(self, user_id: str, page_str: Optional[str] = None):
         page = int(page_str) if page_str and page_str.isdigit() else 1
         limit = 10
         skip = (page - 1) * limit
 
-        notification_filter = {"recipient_id": user_id}
-        total = await Notification.find(notification_filter).count()
-        notifications = await Notification.find(notification_filter) \
-            .sort(-Notification.id).skip(skip).limit(limit).to_list()
+        notifications, total = await self.notification_repository.find_page_for_recipient(user_id, skip=skip, limit=limit)
 
         return {
             "notifications": [n.model_dump(mode="json") for n in notifications],
@@ -32,8 +34,7 @@ class NotificationService:
 
 
     async def mark_notifications_as_read(self, user_id: str, page_str: Optional[str] = None):
-        notification_filter = {"recipient_id": user_id}
-        await Notification.find(notification_filter).update({"$set": {"isRead": True}})
+        await self.notification_repository.mark_all_read_for_recipient(user_id)
         return await self.get_user_notifications(user_id, page_str)
 
 
@@ -49,7 +50,7 @@ class NotificationService:
             )
         )
 
-        await notification.save()
+        await self.notification_repository.save(notification)
 
         try:
             await notifications_grpc_client.send_notification(

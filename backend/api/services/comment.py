@@ -1,37 +1,42 @@
 import math
 from typing import Optional
 
-from bson import ObjectId
-from fastapi import Depends
-
+from exceptions import NotFoundError
 from models.comment import Comment
-from models.post import Post
-from models.user import User
 from schemas.post import CreateComment
+from repositories.comment_repository import CommentRepository
+from repositories.post_repository import PostRepository
+from repositories.user_repository import UserRepository
 from services.notification import NotificationService
 
 
 class CommentService:
 
-    def __init__(self, notification_service: NotificationService = Depends()):
+    def __init__(
+        self,
+        comment_repository: CommentRepository,
+        post_repository: PostRepository,
+        user_repository: UserRepository,
+        notification_service: NotificationService,
+    ):
+        self.comment_repository = comment_repository
+        self.post_repository = post_repository
+        self.user_repository = user_repository
         self.notification_service = notification_service
 
     async def create_comment(self, data: CreateComment, post_id: str, user_id: str):
-        try:
-            post = await Post.find_one({"_id": ObjectId(post_id)})
-        except Exception:
-            return None
+        post = await self.post_repository.find_by_id(post_id)
         if not post:
-            return None
+            raise NotFoundError("Post not found")
 
         new_comment = Comment(
             post_id=post_id,
             user_id=user_id,
             value=data.value,
         )
-        await new_comment.save()
+        await self.comment_repository.save(new_comment)
 
-        commenter = await User.find_one({"_id": ObjectId(user_id)})
+        commenter = await self.user_repository.find_by_id(user_id)
         if commenter and post.creator != user_id:
             details = "user " + commenter.username + " commented on your post"
             await self.notification_service.create_notification(
@@ -42,19 +47,17 @@ class CommentService:
                 actor_image_url=commenter.imageUrl,
             )
 
-        return new_comment
+        return new_comment.model_dump(mode="json")
 
     async def get_post_comments(self, post_id: str, page_str: Optional[str] = None):
         page = int(page_str) if page_str and page_str.isdigit() else 1
         limit = 10
         skip = (page - 1) * limit
 
-        total = await Comment.find({"post_id": post_id}).count()
-        comments = await Comment.find({"post_id": post_id}) \
-            .sort(-Comment.id).skip(skip).limit(limit).to_list()
+        comments, total = await self.comment_repository.find_page_by_post(post_id, skip=skip, limit=limit)
 
-        author_ids = {ObjectId(c.user_id) for c in comments}
-        authors = await User.find({"_id": {"$in": list(author_ids)}}).to_list()
+        author_ids = list({c.user_id for c in comments})
+        authors = await self.user_repository.find_by_ids(author_ids)
         authors_by_id = {str(author.id): author for author in authors}
 
         comment_list = []
@@ -73,18 +76,12 @@ class CommentService:
 
     # get a single comment by id (used for ownership checks before deleting)
     async def get_comment_by_id(self, comment_id: str):
-        try:
-            comment = await Comment.find_one({"_id": ObjectId(comment_id)})
-        except Exception:
-            return None
+        comment = await self.comment_repository.find_by_id(comment_id)
+        if not comment:
+            raise NotFoundError("Comment not found")
         return comment
 
     async def delete_comment(self, comment_id: str):
-        try:
-            comment = await Comment.find_one({"_id": ObjectId(comment_id)})
-        except Exception:
-            return None
-        if not comment:
-            return None
-        await comment.delete()
+        comment = await self.get_comment_by_id(comment_id)
+        await self.comment_repository.delete(comment)
         return {"message": "Comment deleted successfully"}

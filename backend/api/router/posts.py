@@ -1,10 +1,10 @@
 from typing import Optional
 
-from services.user import UserService
+from di import get_post_service
 from services.post import PostService
 from schemas.post import CreatePost, UpdatePost
 from auth.auth_bearer import get_current_user_id
-from exceptions import ForbiddenError, NotFoundError
+from exceptions import ForbiddenError
 from models.post import Post
 
 from fastapi import APIRouter, Depends, status
@@ -17,31 +17,23 @@ posts_router = APIRouter()
 async def create_post(
     new_post: CreatePost,
     uid: str = Depends(get_current_user_id),
-    user_service: UserService = Depends(),
-    post_service: PostService = Depends(),
+    post_service: PostService = Depends(get_post_service),
 ):
-    user = await user_service.get_user_by_id(uid)
-    if not user:
-        raise NotFoundError("User not found")
-
     post_in = Post(
         message=new_post.message,
         creator=uid,
         selectedFile=new_post.selectedFile,
         title=new_post.title,
     )
-    created_post = await post_service.create_post(post_in)
-    return created_post.model_dump(mode="json")
+    return await post_service.create_post(post_in)
 
 
 
 # get post by id, with its creator's name/imageUrl attached
 @posts_router.get("/{post_id}", status_code=status.HTTP_200_OK)
-async def get_post_by_id(post_id: str, post_service: PostService = Depends()):
-    result = await post_service.get_post_detail(post_id)
-    if not result:
-        raise NotFoundError("Post not found")
-    return result["post"]
+async def get_post_by_id(post_id: str, post_service: PostService = Depends(get_post_service)):
+    return await post_service.get_post_detail(post_id)
+
 
 
 
@@ -51,15 +43,9 @@ async def get_posts(
     page: Optional[str] = None,
     profileId: Optional[str] = None,
     uid: str = Depends(get_current_user_id),
-    post_service: PostService = Depends(),
+    post_service: PostService = Depends(get_post_service),
 ):
-    result = await post_service.get_all_posts(page, uid, profileId)
-    return {
-        "posts": result["posts"],
-        "currentPage": result["currentPage"],
-        "numberOfPages": result["numberOfPages"],
-        "total": result["total"],
-    }
+    return await post_service.get_all_posts(page, uid, profileId)
 
 
 
@@ -69,16 +55,13 @@ async def update_post(
     post_id: str,
     new_post: UpdatePost,
     uid: str = Depends(get_current_user_id),
-    post_service: PostService = Depends()
+    post_service: PostService = Depends(get_post_service)
 ):
     existing_post = await post_service.get_post_by_id(post_id)
-    if not existing_post:
-        raise NotFoundError("Post not found")
     if existing_post.creator != uid:
         raise ForbiddenError("You are not authorized to update this post")
 
-    result = await post_service.update_post(post_id, new_post)
-    return result["data"].model_dump(mode="json")
+    return await post_service.update_post(post_id, new_post)
 
 
 # like a post
@@ -86,12 +69,9 @@ async def update_post(
 async def like(
     post_id: str,
     uid: str = Depends(get_current_user_id),
-    post_service: PostService = Depends(),
+    post_service: PostService = Depends(get_post_service),
 ):
-    result = await post_service.like_post(post_id, uid)
-    if not result:
-        raise NotFoundError("Post not found")
-    return result["data"].model_dump(mode="json")
+    return await post_service.like_post(post_id, uid)
 
 
 
@@ -100,11 +80,9 @@ async def like(
 async def delete_post(
     post_id: str,
     uid: str = Depends(get_current_user_id),
-    post_service: PostService = Depends(),
+    post_service: PostService = Depends(get_post_service),
 ):
     existing_post = await post_service.get_post_by_id(post_id)
-    if not existing_post:
-        raise NotFoundError("Post not found")
     if uid != existing_post.creator:
         raise ForbiddenError("You are not authorized to delete this post")
 

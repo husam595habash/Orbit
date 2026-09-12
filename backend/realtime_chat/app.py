@@ -14,6 +14,7 @@ from grpc_client import friends
 from grpc_server.chat_service import ChatServer
 
 from auth.auth_handler import decodeJWT
+from db.database import init_db
 from schemas.message import CreateMessage
 
 
@@ -94,6 +95,7 @@ class ConnectionManager:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await init_db()
     try:
         chat_server = ChatServer()
         asyncio.create_task(chat_server.start())

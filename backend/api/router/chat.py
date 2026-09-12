@@ -1,3 +1,4 @@
+from di import get_chat_service
 from services.chat import ChatService
 from schemas.message import CreateMessage
 from auth.auth_bearer import get_current_user_id
@@ -11,10 +12,9 @@ chat_router = APIRouter()
 async def send_message(
     data: CreateMessage,
     sender_id: str = Depends(get_current_user_id),
-    chat_service: ChatService = Depends(),
+    chat_service: ChatService = Depends(get_chat_service),
 ):
-    result = await chat_service.send_message(data, sender_id)
-    return result["message"].model_dump(mode="json")
+    return await chat_service.send_message(data, sender_id)
 
 
 
@@ -24,32 +24,26 @@ async def get_conversation_messages(
     user_b_id: str,
     page: str = "0",
     uid: str = Depends(get_current_user_id),
-    chat_service: ChatService = Depends(),
+    chat_service: ChatService = Depends(get_chat_service),
 ):
     if uid not in (user_a_id, user_b_id):
         raise ForbiddenError("You are not authorized to view this conversation")
 
-    result = await chat_service.get_conversation_messages(page, user_a_id, user_b_id)
-    return {
-        "messages": [m.model_dump(mode="json") for m in result["messages"]],
-        "currentPage": result["currentPage"],
-        "numberOfPages": result["numberOfPages"],
-    }
+    return await chat_service.get_conversation_messages(page, user_a_id, user_b_id)
 
 
 @chat_router.get("/conversations")
 async def get_conversations(
     uid: str = Depends(get_current_user_id),
-    chat_service: ChatService = Depends(),
+    chat_service: ChatService = Depends(get_chat_service),
 ):
-    result = await chat_service.get_conversations(uid)
-    return {"conversations": result}
+    return await chat_service.get_conversations(uid)
 
 
 @chat_router.get("/messages/unread")
 async def get_user_unread_messages(
     uid: str = Depends(get_current_user_id),
-    chat_service: ChatService = Depends(),
+    chat_service: ChatService = Depends(get_chat_service),
 ):
     return await chat_service.get_user_unread_messages(uid)
 
@@ -58,6 +52,6 @@ async def get_user_unread_messages(
 async def mark_messages_as_read(
     sender_id: str,
     recipient_id: str = Depends(get_current_user_id),
-    chat_service: ChatService = Depends(),
+    chat_service: ChatService = Depends(get_chat_service),
 ):
     return await chat_service.mark_messages_as_read(recipient_id, sender_id)
