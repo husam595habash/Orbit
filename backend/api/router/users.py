@@ -7,7 +7,7 @@ from pymongo.errors import DuplicateKeyError
 from exceptions import ForbiddenError, ValidationError
 from rate_limit import limiter
 from services.user import UserService
-from schemas.user import CreateUser, LoginUser, UpdateUser
+from schemas.user import CreateUser, LoginUser, UpdateUser, GoogleAuthRequest
 from fastapi.responses import JSONResponse
 
 users_router = APIRouter()
@@ -30,6 +30,14 @@ async def signup(request: Request, user: CreateUser, user_service: UserService =
 @limiter.limit("10/minute")
 async def login(request: Request, user: LoginUser, user_service: UserService = Depends(get_user_service)):
     return await user_service.authenticate_user(user)
+
+@users_router.post("/auth/google", status_code=status.HTTP_200_OK)
+async def google_auth(
+    request: Request,
+    token: GoogleAuthRequest,
+    user_service: UserService = Depends(get_user_service)
+):
+    return await user_service.authenticate_google_user(token.id_token)
 
 
 # get Suggested Users
@@ -72,8 +80,11 @@ async def update_user(
     return await user_service.update_user(userBody, user_id)
 
 
+
 @users_router.patch("/{user_id}/following/{target_id}", status_code=status.HTTP_200_OK)
+@limiter.limit("30/minute")
 async def follow_user(
+    request: Request,
     user_id: str,
     target_id: str,
     user_service: UserService = Depends(get_user_service),

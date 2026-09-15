@@ -2,7 +2,7 @@ from typing import Optional
 
 from passlib.context import CryptContext
 
-from auth.auth_handler import signJWT
+from auth.auth_handler import signJWT, verify_google_token
 from exceptions import NotFoundError, UnauthorizedError
 from models.user import User
 from schemas.user import CreateUser, LoginUser, UpdateUser
@@ -43,8 +43,27 @@ class UserService:
     # login user
     async def authenticate_user(self, userBody: LoginUser) -> dict:
         user = await self.user_repository.find_by_email(userBody.email)
-        if not user or not pwd_context.verify(userBody.password, user.password):
+        if not user or not user.password or not pwd_context.verify(userBody.password, user.password):
             raise UnauthorizedError("Invalid email or password")
+
+        token = signJWT(str(user.id))
+        return {"user": _to_public_dict(user), "token": token["access_token"]}
+
+
+
+    async def authenticate_google_user(self, id_token: str) -> dict:
+        google_user = verify_google_token(id_token)
+
+        user = await self.user_repository.find_by_email(google_user["email"])
+        if not user:
+            user_in = User(
+                firstname=google_user["firstname"],
+                lastname=google_user["lastname"],
+                username=google_user["username"],
+                email=google_user["email"],
+                imageUrl=google_user["imageUrl"],
+            )
+            user = await self.user_repository.save(user_in)
 
         token = signJWT(str(user.id))
         return {"user": _to_public_dict(user), "token": token["access_token"]}

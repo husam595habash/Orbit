@@ -7,6 +7,7 @@ click==8.4.2
 dnspython==2.8.0
 email-validator==2.3.0
 fastapi==0.138.2
+google-auth==2.35.0
 grpcio==1.83.0
 grpcio-tools==1.83.0
 h11==0.16.0
@@ -20,6 +21,7 @@ pydantic_core==2.46.4
 PyJWT==2.13.0
 pymongo==4.17.0
 python-decouple==3.8
+requests==2.32.3
 redis==5.2.1
 setuptools==83.0.0
 slowapi==0.1.9

@@ -14,6 +14,10 @@ class LoginUser(BaseModel):
     password: str
 
 
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+
+
 class UpdateUser(BaseModel):
     firstname: str | None = None
     lastname: str | None = None

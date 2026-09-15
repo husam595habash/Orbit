@@ -8,7 +8,7 @@ class User(Document):
     lastname: str
     username: Indexed(str, unique=True)
     email: Indexed(EmailStr, unique=True)
-    password: str
+    password: Optional[str] = None
     bio: Optional[str] = Field(default="")
     imageUrl: Optional[str] = Field(default="")
     followers: Optional[List[str]] = Field(default=[])
