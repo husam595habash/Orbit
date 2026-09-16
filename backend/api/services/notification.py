@@ -1,13 +1,8 @@
 import logging
 import math
-import os
-import sys
 from typing import Optional
 
-_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-sys.path.append(_REPO_ROOT)
-
-from backend.realtime_notification.grpc_client import notifications as notifications_grpc_client
+from grpc_client import notifications as notifications_grpc_client
 from models.notification import Notification, NotificationActor
 from repositories.notification_repository import NotificationRepository
 

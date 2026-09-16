@@ -6,22 +6,14 @@ import sys
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
 
-_REALTIME_NOTIFICATION_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(_REALTIME_NOTIFICATION_DIR, "protos"))
+_API_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(_API_DIR, "protos"))
 
 from notification_pb2_grpc import NotificationServiceStub
 from notification_pb2 import NotificationActor, NotificationRequest
 
-# Plain os.environ instead of decouple.config: decouple's config object is a
-# process-wide singleton that picks its .env search path from whichever
-# caller invokes it first and caches that for every later call — mixing it
-# in here risks poisoning auth_handler's unrelated `secret`/`algorithm` lookup
-# depending on import order.
 NOTIFICATION_GRPC_ADDRESS = os.environ.get("NOTIFICATION_GRPC_ADDRESS", "localhost:8090")
 
-# One channel, reused for every call, instead of opening a new connection
-# per RPC. grpc.aio channels are meant to be long-lived and handle their
-# own reconnection internally.
 _channel = None
 _stub = None
 
