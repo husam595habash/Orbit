@@ -1,8 +1,5 @@
-import os
-import sys
-
-_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(_REPO_ROOT)
+import asyncio
+import logging
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -15,10 +12,16 @@ from db.database import init_db
 from rate_limit import limiter
 from router.routers import router
 from exceptions import NotFoundError, ValidationError, ForbiddenError, UnauthorizedError
+from grpc_server.chat_service import ChatServer
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    try:
+        chat_server = ChatServer()
+        asyncio.create_task(chat_server.start())
+    except Exception as e:
+        logging.error(f"Error starting gRPC server: {e}")
     yield
 
 

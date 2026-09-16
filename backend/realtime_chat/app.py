@@ -1,21 +1,12 @@
 
 from fastapi import FastAPI , WebSocket, WebSocketDisconnect
 
-import asyncio
 import logging
-import os
-import sys
-
-from contextlib import asynccontextmanager
-
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "api"))
 
 from grpc_client import friends
-from grpc_server.chat_service import ChatServer
 
-from auth.auth_handler import decodeJWT
-from db.database import init_db
-from schemas.message import CreateMessage
+from jwt_auth import decodeJWT
+from message import CreateMessage
 
 
 class ConnectionManager:
@@ -57,7 +48,6 @@ class ConnectionManager:
 
                 
 
-    # remove connection
     async def remove_connection(self, user_id: str):
         if user_id not in self.connections:
             logging.warning(f"User {user_id} not in connections on removal.")
@@ -69,7 +59,6 @@ class ConnectionManager:
             friend_ws = self.connections.get(friend_id)
             if friend_ws:
                 await self.notify_online_friends(friend_id, friend_ws)
-    # send to receiver
     async def send_to_receiver(self, sender_id: str, msg: CreateMessage):
         receiver = msg.receiver
         receiver_ws = self.connections.get(receiver)
@@ -93,17 +82,7 @@ class ConnectionManager:
             except Exception as e:
                 logging.error(f"Error sending realtime message to {receiver}: {e}")
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await init_db()
-    try:
-        chat_server = ChatServer()
-        asyncio.create_task(chat_server.start())
-    except Exception as e:
-        logging.error(f"Error starting gRPC server: {e}")
-    yield
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 manager = ConnectionManager()
 
 @app.websocket("/ws")
